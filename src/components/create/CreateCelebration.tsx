@@ -84,17 +84,6 @@ export function CreateCelebration() {
           <span className="text-accent">celebration</span>
         </h1>
 
-        {/* Honest state of the feature */}
-        <div className="mt-8 border-l-4 border-accent bg-paper-2 py-4 pl-5">
-          <p className="microlabel">Not saving yet</p>
-          <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink-mute">
-            These screens are built, but celebrations are not stored anywhere
-            until the database goes in. Fill this in to see how it works and to
-            check the design — nothing you enter here will survive a refresh,
-            and the link will not open for anyone else.
-          </p>
-        </div>
-
         <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_420px]">
           {/* The form */}
           <form className="min-w-0" onSubmit={(e) => e.preventDefault()}>
