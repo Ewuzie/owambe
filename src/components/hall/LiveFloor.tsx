@@ -1,13 +1,14 @@
 "use client";
 
-import { OwambeEvent } from "@/lib/event";
+import Link from "next/link";
+import { OwambeEvent, eventCountry } from "@/lib/event";
 import { Guest, sideClasses } from "@/lib/hall";
 import { FloatingEmote, Shoutout } from "./useHallEngine";
 
 /*
-  The live floor: host video is the centre of gravity but not the whole
-  screen. Mock stream stands in for WebRTC/HLS. Emotes float over the
-  floor; the MC shout-out banner sits at the base of the video.
+  The live floor. Host video is the centre of gravity but not the whole
+  screen. The mock stream stands in for a provider (the prompt forbids
+  building streaming ourselves).
 */
 
 export function LiveFloor({
@@ -16,31 +17,30 @@ export function LiveFloor({
   emotes,
   shoutout,
   programmeIndex,
-  rainActive,
+  surgeActive,
 }: {
   event: OwambeEvent;
   guests: Guest[];
   emotes: FloatingEmote[];
   shoutout: Shoutout | null;
   programmeIndex: number;
-  rainActive: boolean;
+  surgeActive: boolean;
 }) {
   const you = guests.find((g) => g.isYou);
   const tables = new Map<number, Guest[]>();
-  for (const g of guests) {
-    tables.set(g.table, [...(tables.get(g.table) ?? []), g]);
-  }
+  for (const g of guests) tables.set(g.table, [...(tables.get(g.table) ?? []), g]);
   const tableNumbers = [...tables.keys()].sort((a, b) => a - b);
-  const sides = event.ceremony.sides;
+  const { sides, programme } = event.ceremony;
+  const now = programme[programmeIndex];
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col">
       {/* Programme strip */}
       <div
         className="flex items-center gap-0 overflow-x-auto border-b border-rule bg-ink"
-        aria-label="Programme of the day"
+        aria-label="Programme"
       >
-        {event.ceremony.programme.map((item, i) => {
+        {programme.map((item, i) => {
           const state = i < programmeIndex ? "done" : i === programmeIndex ? "now" : "next";
           return (
             <div
@@ -73,38 +73,37 @@ export function LiveFloor({
 
       {/* Video well */}
       <div className="relative min-h-0 flex-1 overflow-hidden bg-ink-well">
-        {/* mock live stream: adire-derived backdrop for ceremonial moments only */}
         <div className="absolute inset-0" aria-hidden="true">
           <AdireBackdrop />
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="microlabel mb-3 !text-cream-faint">Live from {event.venue}</div>
-            <h1 className="px-4 text-center font-display text-[clamp(26px,4.5vw,44px)] leading-tight text-cream">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+            <div className="microlabel mb-3 !text-cream-faint">
+              Live from {event.venue}, {event.city}
+            </div>
+            <h1 className="text-center font-display text-[clamp(24px,4.2vw,42px)] leading-tight text-cream">
               {event.title}
             </h1>
-            <div className="mt-2 flex items-center gap-3">
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
               <span className="microlabel !text-cream-mute">{event.ceremony.label}</span>
               <span className="microlabel !text-aso">{event.hashtag}</span>
             </div>
             <div className="mt-5 border-t border-rule pt-3">
-              <span className="microlabel !text-cream-faint">
-                First dance · the floor is open for spraying
-              </span>
+              <span className="microlabel !text-cream-faint">{now?.label}</span>
             </div>
           </div>
         </div>
 
-        {/* LIVE marker */}
         <div className="absolute left-3 top-3 flex items-center gap-1.5 border border-rule-strong bg-ink-well/80 px-2 py-1">
           <span className="marker live-pulse bg-live" aria-hidden="true" />
           <span className="microlabel !text-cream">Live</span>
-          <span className="money ml-1 text-[10px] text-cream-faint">{guests.length + 187} watching</span>
+          <span className="money ml-1 text-[10px] text-cream-faint">
+            {event.guestCount} watching
+          </span>
         </div>
 
-        {/* Aso-ebi of the party */}
         <div className="absolute right-3 top-3 flex items-center gap-1.5 border border-rule-strong bg-ink-well/80 px-2 py-1">
           <span className="marker bg-aso" aria-hidden="true" />
           <span className="marker bg-gold" aria-hidden="true" />
-          <span className="microlabel !text-cream">Aso-ebi · {event.asoEbiName}</span>
+          <span className="microlabel !text-cream">{event.clothName}</span>
         </div>
 
         {/* Floating emotes */}
@@ -116,18 +115,23 @@ export function LiveFloor({
               style={{ left: `${e.x * 100}%` }}
             >
               {e.label}
-              <span className="ml-1.5 !normal-case !tracking-normal text-cream-faint">{e.guestName}</span>
+              <span className="ml-1.5 !normal-case !tracking-normal text-cream-faint">
+                {e.guestName}
+              </span>
             </span>
           ))}
         </div>
 
-        {/* MC shout-out banner */}
+        {/* Announcement banner */}
         <div aria-live="polite" className="absolute inset-x-0 bottom-0">
           {shoutout && (
             <div className="shoutout-enter flex items-baseline gap-2 border-t-2 border-gold bg-ink-well/92 px-4 py-2.5">
-              <span className="microlabel flex-none !text-gold">MC on the mic</span>
+              <span className="microlabel flex-none !text-gold">
+                {event.ceremony.style === "donation" ? "The clerk reads" : "On the mic"}
+              </span>
               <span className="min-w-0 truncate font-display text-[15px] text-cream">
-                Gbedu for {shoutout.guestName}!
+                {shoutout.guestName}
+                {shoutout.pledged ? " has pledged" : ""}!
               </span>
               <span className="money flex-none text-[14px] font-bold text-gold-bright">
                 ${shoutout.amountUsd}
@@ -141,8 +145,7 @@ export function LiveFloor({
           )}
         </div>
 
-        {/* Rain wash */}
-        {rainActive && (
+        {surgeActive && (
           <div
             className="pointer-events-none absolute inset-0 bg-gold/10"
             style={{ animation: "rain-enter var(--t-ceremony) var(--ease-ceremony)" }}
@@ -151,7 +154,7 @@ export function LiveFloor({
         )}
       </div>
 
-      {/* Tables: guests seated, your table highlighted */}
+      {/* Tables */}
       <div className="flex gap-0 overflow-x-auto border-t border-rule bg-ink" aria-label="Tables">
         {tableNumbers.map((t) => {
           const seated = tables.get(t)!;
@@ -170,12 +173,11 @@ export function LiveFloor({
               <div className="flex gap-1">
                 {seated.map((g) => {
                   const sc = sideClasses(event, g.side);
-                  const sideLabel =
-                    sides?.find((s) => s.key === g.side)?.label ?? g.side;
+                  const sideLabel = sides?.find((s) => s.key === g.side)?.label;
                   return (
                     <span
                       key={g.id}
-                      title={`${g.name} · ${sideLabel} · ${g.city}`}
+                      title={`${g.name}${sideLabel ? ` · ${sideLabel}` : ""} · ${g.city}`}
                       className={`flex h-6 w-6 cursor-pointer items-center justify-center border text-[9px] font-semibold transition-colors duration-150 ${
                         g.isYou
                           ? "border-aso bg-aso/25 text-cream"
@@ -195,6 +197,12 @@ export function LiveFloor({
             </div>
           );
         })}
+        <Link
+          href={`/e/${event.id}`}
+          className="microlabel flex flex-none items-center border-r border-rule px-4 !text-cream-faint transition-colors duration-200 hover:!text-cream"
+        >
+          {eventCountry(event).name} · view invitation
+        </Link>
       </div>
     </div>
   );

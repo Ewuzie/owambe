@@ -6,6 +6,7 @@ import {
   FEE_RATE,
   OwambeEvent,
   celebrantReceives,
+  eventCurrency,
   feeUsd,
   formatMoney,
   formatUsd,
@@ -15,39 +16,40 @@ import {
 } from "@/lib/event";
 
 /*
-  The Spray Deck: opens as a sheet from the bottom, never a new page.
-  Denominations, not amounts. Throw, do not submit — hold a bundle to
-  load notes, drag up and release to throw. Keyboard users get a Spray
-  button with a stepper, fully accessible, same result.
+  The giving deck: opens as a sheet from the bottom, never a new page.
+  Denominations, not amounts.
 
-  Money model: the GIVER pays the fee. The note you throw is delivered
-  whole, and the fee is added on top of what you are charged.
+  The gesture matches the ceremony. You THROW at a wedding, because that
+  is what spraying is. You do not throw money at a funeral or into a
+  savings pot — there you confirm an amount at a table. Same sheet, same
+  speed, different physical metaphor.
+
+  Money model: the GIVER pays the fee, so the gift lands whole.
 */
 
 export function SprayDeck({
   open,
   event,
   onClose,
-  onThrow,
+  onGive,
 }: {
   open: boolean;
   event: OwambeEvent;
   onClose: () => void;
-  onThrow: (amountUsd: number, opts: { message?: string; anonymous: boolean }) => void;
+  onGive: (amountUsd: number, opts: { message?: string; anonymous: boolean }) => void;
 }) {
-  /* Mounted only while open, so each throw starts from a clean bundle. */
   if (!open) return null;
-  return <SprayDeckSheet event={event} onClose={onClose} onThrow={onThrow} />;
+  return <GiveSheet event={event} onClose={onClose} onGive={onGive} />;
 }
 
-function SprayDeckSheet({
+function GiveSheet({
   event,
   onClose,
-  onThrow,
+  onGive,
 }: {
   event: OwambeEvent;
   onClose: () => void;
-  onThrow: (amountUsd: number, opts: { message?: string; anonymous: boolean }) => void;
+  onGive: (amountUsd: number, opts: { message?: string; anonymous: boolean }) => void;
 }) {
   const [denom, setDenom] = useState<number>(20);
   const [count, setCount] = useState(1);
@@ -55,15 +57,15 @@ function SprayDeckSheet({
   const [anonymous, setAnonymous] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  /* hold-to-load + drag-to-throw state */
   const holdTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const dragStartY = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const [dragDy, setDragDy] = useState(0);
 
   const amount = denom * count;
-  const currency = event.currency;
-  const verb = event.ceremony.givingVerb;
+  const currency = eventCurrency(event);
+  const { givingVerb, style, pledgeBased } = event.ceremony;
+  const isThrow = style === "spray";
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -77,18 +79,17 @@ function SprayDeckSheet({
     sheetRef.current?.focus();
   }, []);
 
-  const doThrow = () => {
-    onThrow(amount, { message: message.trim() || undefined, anonymous });
+  const doGive = () => {
+    onGive(amount, { message: message.trim() || undefined, anonymous });
     onClose();
   };
 
   const startHold = (clientY: number) => {
+    if (!isThrow) return;
     dragStartY.current = clientY;
     setDragging(true);
     setDragDy(0);
-    holdTimer.current = setInterval(() => {
-      setCount((c) => Math.min(20, c + 1));
-    }, 350);
+    holdTimer.current = setInterval(() => setCount((c) => Math.min(20, c + 1)), 350);
   };
 
   const moveHold = (clientY: number) => {
@@ -103,14 +104,15 @@ function SprayDeckSheet({
     setDragging(false);
     setDragDy(0);
     dragStartY.current = null;
-    if (threw) doThrow();
+    if (threw) doGive();
   };
+
+  const recipientNoun = pledgeBased ? "They receive" : "Recipient receives";
 
   return (
     <div className="absolute inset-0 z-40 flex items-end" role="presentation">
-      {/* scrim */}
       <button
-        aria-label="Close spray deck"
+        aria-label="Close"
         onClick={onClose}
         className="absolute inset-0 cursor-pointer bg-ink-well/70"
       />
@@ -118,17 +120,18 @@ function SprayDeckSheet({
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        aria-label={`${verb} deck`}
+        aria-label={`${givingVerb} deck`}
         tabIndex={-1}
         className="relative z-10 w-full border-t-2 border-gold-deep bg-ink-raised outline-none"
       >
-        {/* Header: what is thrown, and what it is worth where it lands */}
         <div className="flex items-start justify-between border-b border-rule px-5 pb-3 pt-4">
           <div>
-            <div className="microlabel">{verb} the couple</div>
+            <div className="microlabel">
+              {givingVerb} for {event.honouree}
+            </div>
             <div className="mt-1 font-display text-[18px] text-cream">
               {count > 1 ? `${count} × ` : ""}
-              {formatUsd(denom)} notes
+              {formatUsd(denom)} {isThrow ? "notes" : ""}
             </div>
           </div>
           <div className="text-right">
@@ -139,18 +142,13 @@ function SprayDeckSheet({
           </div>
         </div>
 
-        {/* Denominations, not amounts */}
-        <div
-          role="radiogroup"
-          aria-label="Note denomination"
-          className="grid grid-cols-5 border-b border-rule"
-        >
+        <div role="radiogroup" aria-label="Amount" className="grid grid-cols-5 border-b border-rule">
           {DENOMINATIONS_USD.map((d) => (
             <button
               key={d}
               role="radio"
               aria-checked={denom === d}
-              aria-label={`${formatUsd(d)} note, ${formatMoney(toLocal(d, currency), currency)}`}
+              aria-label={`${formatUsd(d)}, ${formatMoney(toLocal(d, currency), currency)}`}
               onClick={() => {
                 setDenom(d);
                 setCount(1);
@@ -167,64 +165,82 @@ function SprayDeckSheet({
           ))}
         </div>
 
-        {/* The bundle: hold to load, drag up to throw */}
         <div className="flex items-stretch gap-4 px-5 py-4">
-          <div className="flex flex-1 flex-col items-center">
-            <div
-              role="button"
-              aria-label={`Bundle of ${count} ${formatUsd(denom)} notes. Hold and drag up to throw.`}
-              tabIndex={0}
-              onPointerDown={(e) => {
-                e.currentTarget.setPointerCapture(e.pointerId);
-                startHold(e.clientY);
-              }}
-              onPointerMove={(e) => moveHold(e.clientY)}
-              onPointerUp={endHold}
-              onPointerCancel={endHold}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  doThrow();
-                }
-              }}
-              className="relative cursor-grab touch-none select-none active:cursor-grabbing"
-              style={{
-                transform: `translateY(${-Math.min(dragDy, 90)}px) rotate(${-Math.min(dragDy, 90) / 18}deg)`,
-                transition: dragging ? "none" : `transform var(--t-fast) var(--ease-snap)`,
-              }}
-            >
-              {/* stacked notes */}
-              {Array.from({ length: Math.min(count, 8) }).map((_, i) => (
+          <div className="flex flex-1 flex-col items-center justify-center">
+            {isThrow ? (
+              <>
                 <div
-                  key={i}
-                  className="absolute left-0 top-0 h-[52px] w-[110px] border border-gold-deep bg-gold"
-                  style={{ transform: `translate(${i * -1.5}px, ${i * -3}px) rotate(${(i % 3) - 1}deg)` }}
-                  aria-hidden="true"
-                />
-              ))}
-              <div className="relative flex h-[52px] w-[110px] items-center justify-center border border-gold-deep bg-gold">
-                <span className="money text-[16px] font-bold text-ink-well">${denom}</span>
-                <span className="pointer-events-none absolute inset-[3px] border border-gold-deep/50" />
+                  role="button"
+                  aria-label={`Bundle of ${count} ${formatUsd(denom)} notes. Hold and drag up to throw.`}
+                  tabIndex={0}
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    startHold(e.clientY);
+                  }}
+                  onPointerMove={(e) => moveHold(e.clientY)}
+                  onPointerUp={endHold}
+                  onPointerCancel={endHold}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      doGive();
+                    }
+                  }}
+                  className="relative cursor-grab touch-none select-none active:cursor-grabbing"
+                  style={{
+                    transform: `translateY(${-Math.min(dragDy, 90)}px) rotate(${-Math.min(dragDy, 90) / 18}deg)`,
+                    transition: dragging ? "none" : `transform var(--t-fast) var(--ease-snap)`,
+                  }}
+                >
+                  {Array.from({ length: Math.min(count, 8) }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute left-0 top-0 h-[52px] w-[110px] border border-gold-deep bg-gold"
+                      style={{ transform: `translate(${i * -1.5}px, ${i * -3}px) rotate(${(i % 3) - 1}deg)` }}
+                      aria-hidden="true"
+                    />
+                  ))}
+                  <div className="relative flex h-[52px] w-[110px] items-center justify-center border border-gold-deep bg-gold">
+                    <span className="money text-[16px] font-bold text-ink-well">${denom}</span>
+                    <span className="pointer-events-none absolute inset-[3px] border border-gold-deep/50" />
+                  </div>
+                </div>
+                <div className="microlabel mt-4">
+                  {dragging
+                    ? dragDy > 48
+                      ? "Release to throw!"
+                      : "Drag up…"
+                    : "Hold to load · drag up to throw"}
+                </div>
+              </>
+            ) : (
+              /* Recorded, not thrown: the ledger entry the clerk would write. */
+              <div className="w-full">
+                <div className="left-rule-gold border-b border-rule py-2 pl-3">
+                  <div className="microlabel">
+                    {pledgeBased ? "Your pledge" : "Entry for the record"}
+                  </div>
+                  <div className="money mt-1 text-[20px] font-bold text-gold-bright">
+                    {formatMoney(toLocal(amount, currency), currency)}
+                  </div>
+                </div>
+                <p className="mt-2 text-[11px] leading-snug text-cream-faint">
+                  {pledgeBased
+                    ? "Announced now and read back by the clerk. You settle it after the harambee."
+                    : "Recorded at the table and read out with your name."}
+                </p>
               </div>
-            </div>
-            <div className="microlabel mt-4">
-              {dragging
-                ? dragDy > 48
-                  ? "Release to throw!"
-                  : "Drag up…"
-                : "Hold to load · drag up to throw"}
-            </div>
+            )}
           </div>
 
-          {/* Accessible path: stepper + spray button, same result */}
           <div className="flex w-[150px] flex-none flex-col justify-between border-l border-rule pl-4">
             <div>
               <label htmlFor="note-count" className="microlabel block">
-                Notes
+                {isThrow ? "Notes" : "Multiple"}
               </label>
               <div className="mt-1 flex items-center gap-2">
                 <button
-                  aria-label="Fewer notes"
+                  aria-label="Decrease"
                   onClick={() => setCount((c) => Math.max(1, c - 1))}
                   className="h-8 w-8 cursor-pointer border border-rule-strong text-cream transition-colors duration-150 hover:border-cream-mute"
                 >
@@ -234,7 +250,7 @@ function SprayDeckSheet({
                   {count}
                 </output>
                 <button
-                  aria-label="More notes"
+                  aria-label="Increase"
                   onClick={() => setCount((c) => Math.min(20, c + 1))}
                   className="h-8 w-8 cursor-pointer border border-rule-strong text-cream transition-colors duration-150 hover:border-cream-mute"
                 >
@@ -243,25 +259,24 @@ function SprayDeckSheet({
               </div>
             </div>
             <button
-              onClick={doThrow}
+              onClick={doGive}
               className="mt-3 cursor-pointer border border-gold-deep bg-gold px-3 py-2.5 text-[13px] font-bold text-ink-well transition-colors duration-150 hover:bg-gold-bright"
             >
-              {verb} {formatUsd(amount)}
+              {givingVerb} {formatUsd(amount)}
             </button>
           </div>
         </div>
 
-        {/* Message + anonymous */}
         <div className="flex items-center gap-4 border-t border-rule px-5 py-3">
-          <label htmlFor="spray-message" className="sr-only">
-            Message with your {verb.toLowerCase()}
+          <label htmlFor="gift-message" className="sr-only">
+            Message
           </label>
           <input
-            id="spray-message"
+            id="gift-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             maxLength={60}
-            placeholder="Message for the MC to read (optional)"
+            placeholder="Add a message (optional)"
             className="min-w-0 flex-1 bg-transparent text-[13px] text-cream placeholder:text-cream-faint focus:outline-none"
           />
           <label className="flex cursor-pointer items-center gap-2 text-[12px] text-cream-mute">
@@ -276,14 +291,10 @@ function SprayDeckSheet({
           </label>
         </div>
 
-        {/*
-          The split view. Under giver-pays the couple gets the whole note,
-          and the fee sits visibly on top of what the giver is charged.
-        */}
         <div className="border-t border-rule px-5 py-2.5">
           <p className="money text-[11px] leading-relaxed text-cream-faint">
             <span className="text-cream-mute">
-              Couple receives {formatMoney(celebrantReceives(amount, currency), currency)} in full
+              {recipientNoun} {formatMoney(celebrantReceives(amount, currency), currency)} in full
             </span>
             {" · "}
             You pay {formatUsd(giverPaysUsd(amount))} (incl. {formatUsd(feeUsd(amount))} fee,{" "}

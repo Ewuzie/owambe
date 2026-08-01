@@ -1,17 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import { OwambeEvent, formatUsd, toLocal } from "@/lib/event";
 import {
-  AMBIENT_CHAT,
-  AMBIENT_MESSAGES,
+  OwambeEvent,
+  eventCurrency,
+  formatUsd,
+  toLocal,
+  tierForUsd,
+} from "@/lib/event";
+import {
   ChatMessage,
   EmoteKind,
+  Gift,
   Guest,
-  INITIAL_GUESTS,
-  Spray,
   YOU_ID,
+  ambientChat,
+  ambientMessages,
+  emotesFor,
+  makeGuests,
   nextId,
+  openingLine,
 } from "@/lib/hall";
 
 export type FloatingEmote = {
@@ -19,7 +27,6 @@ export type FloatingEmote = {
   kind: EmoteKind;
   label: string;
   guestName: string;
-  /** 0..1 horizontal position over the floor */
   x: number;
 };
 
@@ -28,13 +35,16 @@ export type Shoutout = {
   guestName: string;
   amountUsd: number;
   message?: string;
+  pledged: boolean;
 };
 
 export type HallState = {
   guests: Guest[];
-  sprays: Spray[];
+  gifts: Gift[];
   chat: ChatMessage[];
-  totalLocal: number;
+  totalUsd: number;
+  /** Pledged but not yet paid, for pledge-based ceremonies. */
+  outstandingUsd: number;
   programmeIndex: number;
   rainActive: boolean;
   lastRainEndedAt: number;
@@ -43,26 +53,28 @@ export type HallState = {
   shoutoutQueue: Shoutout[];
 };
 
-/** Rain fires when this many sprays land inside RAIN_WINDOW_MS. */
 const RAIN_THRESHOLD = 3;
 const RAIN_WINDOW_MS = 30_000;
 const RAIN_DURATION_MS = 12_000;
-/** Not more than once every eight minutes (spec). */
 const RAIN_COOLDOWN_MS = 8 * 60_000;
-/** Sprays at or above this enter the MC shout-out queue. */
 const SHOUTOUT_THRESHOLD_USD = 20;
 
 function makeInitialState(event: OwambeEvent): HallState {
+  const guests = makeGuests(event);
   return {
-    guests: INITIAL_GUESTS,
-    sprays: [],
+    guests,
+    gifts: [],
     chat: [
-      { id: nextId("c"), kind: "system", text: "Alaga has opened the floor. Ẹ káàbọ̀!", ts: Date.now() },
-      { id: nextId("c"), kind: "chat", guestId: "g_bisi", text: "We are LIVE from Houston!!", ts: Date.now() },
-      { id: nextId("c"), kind: "chat", guestId: "g_tolu", text: "Groom's side, assemble 🥁", ts: Date.now() },
+      { id: nextId("c"), kind: "system", text: openingLine(event), ts: Date.now() },
     ],
-    totalLocal: INITIAL_GUESTS.reduce((s, g) => s + g.givenLocal, 0),
-    programmeIndex: Math.min(5, event.ceremony.programme.length - 1),
+    totalUsd: guests.reduce((s, g) => s + g.givenUsd, 0),
+    outstandingUsd: event.ceremony.pledgeBased
+      ? Math.round(guests.reduce((s, g) => s + g.givenUsd, 0) * 0.45)
+      : 0,
+    programmeIndex: Math.min(
+      event.status === "live" ? 4 : 0,
+      event.ceremony.programme.length - 1,
+    ),
     rainActive: false,
     lastRainEndedAt: 0,
     emotes: [],
@@ -72,43 +84,55 @@ function makeInitialState(event: OwambeEvent): HallState {
 }
 
 type Action =
-  | { type: "spray"; guestId: string; amountUsd: number; amountLocal: number; message?: string; anonymous: boolean; now: number }
+  | {
+      type: "gift";
+      guestId: string;
+      amountUsd: number;
+      amountLocal: number;
+      message?: string;
+      anonymous: boolean;
+      pledged: boolean;
+      verb: string;
+      now: number;
+    }
   | { type: "chat"; guestId: string; text: string; now: number }
   | { type: "emote"; guestId: string; kind: EmoteKind; label: string; now: number }
   | { type: "emote.expire"; id: string }
-  | { type: "rain.start"; now: number }
+  | { type: "rain.start"; now: number; label: string }
   | { type: "rain.end"; now: number }
   | { type: "shoutout.next" }
   | { type: "programme.advance"; now: number; programmeLength: number; label: string };
 
 function reducer(state: HallState, action: Action): HallState {
   switch (action.type) {
-    case "spray": {
+    case "gift": {
       const guest = state.guests.find((g) => g.id === action.guestId);
       if (!guest) return state;
-      const spray: Spray = {
-        id: nextId("s"),
+      const gift: Gift = {
+        id: nextId("gift"),
         guestId: guest.id,
         amountUsd: action.amountUsd,
         amountLocal: action.amountLocal,
         message: action.message,
         anonymous: action.anonymous,
+        pledged: action.pledged,
         ts: action.now,
       };
       const displayName = action.anonymous ? "A well-wisher" : guest.name;
+      const verb = action.pledged ? "pledged" : action.verb;
       const ledger: ChatMessage = {
         id: nextId("c"),
         kind: "ledger",
         guestId: action.anonymous ? undefined : guest.id,
-        text: `${displayName} sprayed ${formatUsd(action.amountUsd)}${action.message ? ` — “${action.message}”` : ""}`,
+        text: `${displayName} ${verb} ${formatUsd(action.amountUsd)}${action.message ? ` — “${action.message}”` : ""}`,
         ts: action.now,
       };
       const guests = state.guests.map((g) =>
         g.id === guest.id
           ? {
               ...g,
-              givenLocal: g.givenLocal + action.amountLocal,
-              tier: tierFor(g.givenLocal + action.amountLocal, g.tier),
+              givenUsd: g.givenUsd + action.amountUsd,
+              tier: tierForUsd(g.givenUsd + action.amountUsd),
             }
           : g,
       );
@@ -116,38 +140,51 @@ function reducer(state: HallState, action: Action): HallState {
         action.amountUsd >= SHOUTOUT_THRESHOLD_USD && !action.anonymous
           ? [
               ...state.shoutoutQueue,
-              { id: spray.id, guestName: guest.name, amountUsd: action.amountUsd, message: action.message },
+              {
+                id: gift.id,
+                guestName: guest.name,
+                amountUsd: action.amountUsd,
+                message: action.message,
+                pledged: action.pledged,
+              },
             ]
           : state.shoutoutQueue;
       return {
         ...state,
         guests,
-        sprays: [...state.sprays, spray],
+        gifts: [...state.gifts, gift],
         chat: append(state.chat, ledger),
-        totalLocal: state.totalLocal + action.amountLocal,
+        totalUsd: state.totalUsd + action.amountUsd,
+        outstandingUsd: state.outstandingUsd + (action.pledged ? action.amountUsd : 0),
         shoutoutQueue,
       };
     }
-    case "chat": {
-      const msg: ChatMessage = {
-        id: nextId("c"),
-        kind: "chat",
-        guestId: action.guestId,
-        text: action.text,
-        ts: action.now,
+    case "chat":
+      return {
+        ...state,
+        chat: append(state.chat, {
+          id: nextId("c"),
+          kind: "chat",
+          guestId: action.guestId,
+          text: action.text,
+          ts: action.now,
+        }),
       };
-      return { ...state, chat: append(state.chat, msg) };
-    }
     case "emote": {
       const guest = state.guests.find((g) => g.id === action.guestId);
-      const emote: FloatingEmote = {
-        id: nextId("e"),
-        kind: action.kind,
-        label: action.label,
-        guestName: guest?.name ?? "Guest",
-        x: 0.08 + Math.random() * 0.84,
+      return {
+        ...state,
+        emotes: [
+          ...state.emotes.slice(-11),
+          {
+            id: nextId("e"),
+            kind: action.kind,
+            label: action.label,
+            guestName: guest?.name ?? "Guest",
+            x: 0.08 + Math.random() * 0.84,
+          },
+        ],
       };
-      return { ...state, emotes: [...state.emotes.slice(-11), emote] };
     }
     case "emote.expire":
       return { ...state, emotes: state.emotes.filter((e) => e.id !== action.id) };
@@ -158,7 +195,7 @@ function reducer(state: HallState, action: Action): HallState {
         chat: append(state.chat, {
           id: nextId("c"),
           kind: "system",
-          text: "OWAMBE RAIN — the room is raining money!",
+          text: action.label,
           ts: action.now,
         }),
       };
@@ -188,45 +225,73 @@ function append(chat: ChatMessage[], msg: ChatMessage): ChatMessage[] {
   return [...chat.slice(-99), msg];
 }
 
-function tierFor(givenLocal: number, current: Guest["tier"]): Guest["tier"] {
-  /* Compared in local units against the seeded NGN scale; revisited in U1.0
-     when gifts carry their own currency. */
-  const t =
-    givenLocal >= 600_000 ? 3 : givenLocal >= 250_000 ? 2 : givenLocal >= 60_000 ? 1 : 0;
-  return t > current ? (t as Guest["tier"]) : current;
+export type GiftVisual = { amountUsd: number; noteCount: number; origin: "you" | "room" };
+
+/** Only spraying throws physical notes. The others record rather than throw. */
+export function throwsNotes(event: OwambeEvent): boolean {
+  return event.ceremony.style === "spray";
 }
 
-export type SprayVisual = { amountUsd: number; noteCount: number; origin: "you" | "room" };
+/** The room-wide climax moment, named per ceremony. */
+export function surgeLabel(event: OwambeEvent): { title: string; sub: string; chat: string } {
+  switch (event.ceremony.style) {
+    case "pledge":
+      return {
+        title: "THE ROOM IS MOVING",
+        sub: "Pledges are pouring in",
+        chat: "The room is moving — pledges pouring in!",
+      };
+    case "donation":
+      return {
+        title: "THE TABLE IS FULL",
+        sub: "The clerks cannot keep up",
+        chat: "The donation table is overflowing.",
+      };
+    case "contribution":
+      return {
+        title: "THE POT IS FULL",
+        sub: "Every member has paid in",
+        chat: "The pot is full — every member has paid in.",
+      };
+    default:
+      return {
+        title: "OWAMBE RAIN",
+        sub: "The room is raining money",
+        chat: "OWAMBE RAIN — the room is raining money!",
+      };
+  }
+}
 
-export function useHallEngine(event: OwambeEvent, onSprayVisual: (v: SprayVisual) => void) {
+export function useHallEngine(event: OwambeEvent, onGiftVisual: (v: GiftVisual) => void) {
   const initial = useMemo(() => makeInitialState(event), [event]);
   const [state, dispatch] = useReducer(reducer, initial);
 
-  /* Latest-value refs, so the long-lived ambient/rain timers below read
-     current state without re-subscribing on every dispatch. */
   const stateRef = useRef(state);
-  const visualRef = useRef(onSprayVisual);
+  const visualRef = useRef(onGiftVisual);
   const eventRef = useRef(event);
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
   useEffect(() => {
-    visualRef.current = onSprayVisual;
-  }, [onSprayVisual]);
+    visualRef.current = onGiftVisual;
+  }, [onGiftVisual]);
   useEffect(() => {
     eventRef.current = event;
   }, [event]);
 
-  const spray = useCallback(
+  const give = useCallback(
     (guestId: string, amountUsd: number, opts?: { message?: string; anonymous?: boolean }) => {
+      const ev = eventRef.current;
       const now = Date.now();
       dispatch({
-        type: "spray",
+        type: "gift",
         guestId,
         amountUsd,
-        amountLocal: toLocal(amountUsd, eventRef.current.currency),
+        amountLocal: toLocal(amountUsd, eventCurrency(ev)),
         message: opts?.message,
         anonymous: opts?.anonymous ?? false,
+        pledged: ev.ceremony.pledgeBased,
+        verb: ev.ceremony.givingVerb.toLowerCase() + "ed",
         now,
       });
       visualRef.current({
@@ -257,7 +322,6 @@ export function useHallEngine(event: OwambeEvent, onSprayVisual: (v: SprayVisual
     });
   }, []);
 
-  /* Emote expiry */
   useEffect(() => {
     if (state.emotes.length === 0) return;
     const oldest = state.emotes[0];
@@ -265,20 +329,18 @@ export function useHallEngine(event: OwambeEvent, onSprayVisual: (v: SprayVisual
     return () => clearTimeout(t);
   }, [state.emotes]);
 
-  /* Rain detection: N sprays inside the window, cooldown respected */
   useEffect(() => {
     const s = stateRef.current;
     if (s.rainActive) return;
     const now = Date.now();
     if (now - s.lastRainEndedAt < RAIN_COOLDOWN_MS && s.lastRainEndedAt !== 0) return;
-    const recent = s.sprays.filter((sp) => now - sp.ts < RAIN_WINDOW_MS);
+    const recent = s.gifts.filter((g) => now - g.ts < RAIN_WINDOW_MS);
     if (recent.length >= RAIN_THRESHOLD) {
-      dispatch({ type: "rain.start", now });
+      dispatch({ type: "rain.start", now, label: surgeLabel(eventRef.current).chat });
       setTimeout(() => dispatch({ type: "rain.end", now: Date.now() }), RAIN_DURATION_MS);
     }
-  }, [state.sprays]);
+  }, [state.gifts]);
 
-  /* Shout-out queue: MC reads one name at a time */
   useEffect(() => {
     if (state.shoutout === null && state.shoutoutQueue.length > 0) {
       dispatch({ type: "shoutout.next" });
@@ -288,47 +350,43 @@ export function useHallEngine(event: OwambeEvent, onSprayVisual: (v: SprayVisual
     }
   }, [state.shoutout, state.shoutoutQueue]);
 
-  /* Ambient room: other guests chat, emote and spray so the hall feels alive.
-     Replaced by real presence and events in U1.2. */
+  /* Ambient room. Replaced by real presence and events in U1.2. */
   useEffect(() => {
+    if (event.status === "ended") return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     const tick = () => {
       if (cancelled) return;
+      const ev = eventRef.current;
       const s = stateRef.current;
       const others = s.guests.filter((g) => !g.isYou);
       const g = others[Math.floor(Math.random() * others.length)];
+      const chatPool = ambientChat(ev);
+      const msgPool = ambientMessages(ev);
       const roll = Math.random();
       if (roll < 0.38) {
         dispatch({
           type: "chat",
           guestId: g.id,
-          text: AMBIENT_CHAT[Math.floor(Math.random() * AMBIENT_CHAT.length)],
+          text: chatPool[Math.floor(Math.random() * chatPool.length)],
           now: Date.now(),
         });
       } else if (roll < 0.62) {
-        const kinds: { kind: EmoteKind; label: string }[] = [
-          { kind: "clap", label: "Clap" },
-          { kind: "zanku", label: "Zanku" },
-          { kind: "owambe", label: "Owambe!" },
-          { kind: "legwork", label: "Legwork" },
-        ];
-        const k = kinds[Math.floor(Math.random() * kinds.length)];
+        const pool = emotesFor(ev);
+        const k = pool[Math.floor(Math.random() * pool.length)];
         dispatch({ type: "emote", guestId: g.id, kind: k.kind, label: k.label, now: Date.now() });
       } else {
         const amounts = [1, 5, 5, 20, 20, 50, 100];
         const amountUsd = amounts[Math.floor(Math.random() * amounts.length)];
-        const message =
-          Math.random() < 0.4
-            ? AMBIENT_MESSAGES[Math.floor(Math.random() * AMBIENT_MESSAGES.length)]
-            : undefined;
         dispatch({
-          type: "spray",
+          type: "gift",
           guestId: g.id,
           amountUsd,
-          amountLocal: toLocal(amountUsd, eventRef.current.currency),
-          message,
+          amountLocal: toLocal(amountUsd, eventCurrency(ev)),
+          message: Math.random() < 0.4 ? msgPool[Math.floor(Math.random() * msgPool.length)] : undefined,
           anonymous: Math.random() < 0.1,
+          pledged: ev.ceremony.pledgeBased,
+          verb: ev.ceremony.givingVerb.toLowerCase() + "ed",
           now: Date.now(),
         });
         visualRef.current({
@@ -344,7 +402,7 @@ export function useHallEngine(event: OwambeEvent, onSprayVisual: (v: SprayVisual
       cancelled = true;
       clearTimeout(timer);
     };
-  }, []);
+  }, [event.status]);
 
-  return { state, spray, sendChat, sendEmote, advanceProgramme };
+  return { state, give, sendChat, sendEmote, advanceProgramme };
 }

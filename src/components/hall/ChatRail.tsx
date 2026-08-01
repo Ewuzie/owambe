@@ -60,7 +60,7 @@ export function ChatRail({
                 : "border-transparent text-cream-faint hover:text-cream-mute"
             }`}
           >
-            {t === "hall" ? "Hall" : `Table ${you?.table ?? ""}`}
+            {t === "hall" ? "Room" : `Table ${you?.table ?? ""}`}
           </button>
         ))}
       </div>

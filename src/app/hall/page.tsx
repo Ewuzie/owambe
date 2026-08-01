@@ -1,9 +1,7 @@
-import { Hall } from "@/components/hall/Hall";
+import { redirect } from "next/navigation";
+import { DEMO_EVENT } from "@/lib/event";
 
-export const metadata = {
-  title: "The Hall · Owambe",
-};
-
-export default function HallPage() {
-  return <Hall />;
+/* The old single-room URL, kept working now that rooms live under /e/[id]. */
+export default function LegacyHallPage() {
+  redirect(`/e/${DEMO_EVENT.id}/hall`);
 }

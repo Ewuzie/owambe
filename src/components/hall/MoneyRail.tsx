@@ -1,21 +1,17 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { OwambeEvent, formatMoney, rateLine } from "@/lib/event";
+import { OwambeEvent, eventCurrency, formatMoney, rateLine, toLocal } from "@/lib/event";
 import { Guest, sideClasses } from "@/lib/hall";
 
 /*
-  The money rail: live total, the Owambe Board top ten, the family war
-  meter, milestones. Gold is used here and almost nowhere else — this
-  rail is what gold is for.
+  The money rail: live total, the board, the family meter. Gold is used
+  here and almost nowhere else — this rail is what gold is for.
+
+  Every label comes from the ceremony, so a Ghanaian funeral shows a
+  donation table rather than a leaderboard of spenders.
 */
 
-/**
- * Ticking total. The true figure is what React renders, so the number is
- * always correct even when frames are suspended (hidden tab) or motion is
- * reduced. The animation only paints the intermediate steps on the way
- * there — the total ticks up rather than jumping, and never lies.
- */
 function useTickingTotal(target: number, format: (n: number) => string) {
   const ref = useRef<HTMLDivElement>(null);
   const shown = useRef(target);
@@ -27,22 +23,14 @@ function useTickingTotal(target: number, format: (n: number) => string) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-
-    /* Snap to the truth whenever we cannot animate to it: reduced motion,
-       or a hidden tab where frames are suspended. React has already
-       rendered the true figure, so there is nothing to correct. */
     const settle = () => {
       shown.current = target;
       el.textContent = formatRef.current(target);
     };
-    if (
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-      document.hidden
-    ) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.hidden) {
       settle();
       return;
     }
-
     let raf = 0;
     const step = () => {
       const diff = target - shown.current;
@@ -55,13 +43,10 @@ function useTickingTotal(target: number, format: (n: number) => string) {
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
-
-    /* Going away mid-tick would strand a half-counted number on screen. */
     const onVisibility = () => {
       if (document.hidden) settle();
     };
     document.addEventListener("visibilitychange", onVisibility);
-
     return () => {
       cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", onVisibility);
@@ -74,28 +59,29 @@ function useTickingTotal(target: number, format: (n: number) => string) {
 export function MoneyRail({
   event,
   guests,
-  totalLocal,
+  totalUsd,
+  outstandingUsd,
 }: {
   event: OwambeEvent;
   guests: Guest[];
-  totalLocal: number;
+  totalUsd: number;
+  outstandingUsd: number;
 }) {
-  const currency = event.currency;
+  const currency = eventCurrency(event);
   const fmt = (n: number) => formatMoney(n, currency);
-  const totalRef = useTickingTotal(totalLocal, fmt);
+  const totalRef = useTickingTotal(toLocal(totalUsd, currency), fmt);
 
-  const board = [...guests].sort((a, b) => b.givenLocal - a.givenLocal).slice(0, 10);
+  const board = [...guests].sort((a, b) => b.givenUsd - a.givenUsd).slice(0, 10);
   const crownId = board[0]?.id;
-  const tierNames = event.ceremony.tierNames;
-  const sides = event.ceremony.sides;
+  const { tierNames, sides, totalLabel, boardLabel, pledgeBased } = event.ceremony;
 
-  const totalA = sides
-    ? guests.filter((g) => g.side === sides[0].key).reduce((s, g) => s + g.givenLocal, 0)
+  const usdA = sides
+    ? guests.filter((g) => g.side === sides[0].key).reduce((s, g) => s + g.givenUsd, 0)
     : 0;
-  const totalB = sides
-    ? guests.filter((g) => g.side === sides[1].key).reduce((s, g) => s + g.givenLocal, 0)
+  const usdB = sides
+    ? guests.filter((g) => g.side === sides[1].key).reduce((s, g) => s + g.givenUsd, 0)
     : 0;
-  const pctA = Math.round((totalA / Math.max(1, totalA + totalB)) * 100);
+  const pctA = Math.round((usdA / Math.max(1, usdA + usdB)) * 100);
 
   return (
     <aside
@@ -104,20 +90,28 @@ export function MoneyRail({
     >
       {/* Live total */}
       <div className="border-b border-rule px-4 pb-4 pt-4">
-        <div className="microlabel">Sprayed tonight</div>
+        <div className="microlabel">{totalLabel}</div>
         <div
           ref={totalRef}
           className="money mt-1 text-right text-[26px] font-bold leading-none text-gold-bright"
           aria-live="off"
         >
-          {fmt(totalLocal)}
+          {fmt(toLocal(totalUsd, currency))}
         </div>
         <div className="money mt-1 text-right text-[11px] text-cream-faint">
           rate locked · {rateLine(currency)}
         </div>
+        {pledgeBased && (
+          <div className="ledger-row mt-3 flex items-baseline justify-between border-b-0 border-t border-rule pt-2">
+            <span className="microlabel">Still outstanding</span>
+            <span className="money text-[12px] text-cream-mute">
+              {fmt(toLocal(outstandingUsd, currency))}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Family war meter */}
+      {/* Two-sided meter */}
       {sides && (
         <div className="border-b border-rule px-4 py-4">
           <div className="mb-2 flex items-baseline justify-between">
@@ -127,25 +121,22 @@ export function MoneyRail({
           <div
             className="flex h-[10px] w-full overflow-hidden border border-rule-strong"
             role="img"
-            aria-label={`Family war meter: ${sides[0].label} ${pctA} percent, ${sides[1].label} ${100 - pctA} percent`}
+            aria-label={`${sides[0].label} ${pctA} percent, ${sides[1].label} ${100 - pctA} percent`}
           >
-            <div
-              className="h-full bg-side-a transition-all duration-700"
-              style={{ width: `${pctA}%` }}
-            />
+            <div className="h-full bg-side-a transition-all duration-700" style={{ width: `${pctA}%` }} />
             <div className="h-full flex-1 bg-side-b transition-all duration-700" />
           </div>
           <div className="money mt-1.5 flex justify-between text-[11px] text-cream-mute">
-            <span>{fmt(totalA)}</span>
-            <span>{fmt(totalB)}</span>
+            <span>{fmt(toLocal(usdA, currency))}</span>
+            <span>{fmt(toLocal(usdB, currency))}</span>
           </div>
         </div>
       )}
 
-      {/* The Owambe Board */}
+      {/* The board */}
       <div className="flex-1 px-4 py-4">
         <div className="mb-1 flex items-baseline justify-between">
-          <h2 className="font-display text-[15px] text-cream">The Owambe Board</h2>
+          <h2 className="font-display text-[15px] text-cream">{boardLabel}</h2>
           <span className="microlabel">Top 10</span>
         </div>
         <ol className="mt-2">
@@ -159,9 +150,7 @@ export function MoneyRail({
                   isCrown ? "left-rule-gold pl-2.5" : "pl-[12px]"
                 }`}
               >
-                <span className="money w-4 flex-none text-[11px] text-cream-faint">
-                  {i + 1}
-                </span>
+                <span className="money w-4 flex-none text-[11px] text-cream-faint">{i + 1}</span>
                 <span
                   className={`flex h-7 w-7 flex-none items-center justify-center border text-[11px] font-semibold ${
                     isCrown
@@ -183,19 +172,17 @@ export function MoneyRail({
                     {tierNames[g.tier]} · {g.city}
                   </span>
                 </span>
-                <span className={`money flex-none text-right text-[12px] ${isCrown ? "text-gold-bright" : "text-cream-mute"}`}>
-                  {fmt(g.givenLocal)}
+                <span
+                  className={`money flex-none text-right text-[12px] ${
+                    isCrown ? "text-gold-bright" : "text-cream-mute"
+                  }`}
+                >
+                  {fmt(toLocal(g.givenUsd, currency))}
                 </span>
               </li>
             );
           })}
         </ol>
-        {crownId && (
-          <p className="mt-3 text-[11px] leading-snug text-cream-faint">
-            <span className="text-gold">Big Spender</span> holds the crown until they are
-            overtaken. Losing it is a notification.
-          </p>
-        )}
       </div>
     </aside>
   );
@@ -213,7 +200,7 @@ function initials(name: string): string {
 
 function CrownIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-label="Big Spender crown">
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-label="Leading giver">
       <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-1.8 10H4.8L3 8z" />
     </svg>
   );

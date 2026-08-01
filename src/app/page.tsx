@@ -1,6 +1,11 @@
-import { redirect } from "next/navigation";
+import { CelebrationsHome } from "@/components/home/CelebrationsHome";
 
-/* Landing (the Ìwé Ìpè) comes in a later phase; the hall is built first. */
+export const metadata = {
+  title: "Owambe · The money layer for African celebrations",
+  description:
+    "Attend a celebration back home and give in front of everybody, from wherever you are.",
+};
+
 export default function Home() {
-  redirect("/hall");
+  return <CelebrationsHome />;
 }

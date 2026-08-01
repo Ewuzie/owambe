@@ -1,62 +1,76 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEMO_EVENT, OwambeEvent } from "@/lib/event";
-import { EMOTES, YOU_ID } from "@/lib/hall";
+import { OwambeEvent } from "@/lib/event";
+import { YOU_ID, emotesFor } from "@/lib/hall";
 import { ChatRail } from "./ChatRail";
 import { LiveFloor } from "./LiveFloor";
 import { MoneyRail } from "./MoneyRail";
 import { SprayCanvas, SprayCanvasHandle } from "./SprayCanvas";
 import { SprayDeck } from "./SprayDeck";
-import { SprayVisual, useHallEngine } from "./useHallEngine";
+import { GiftVisual, surgeLabel, throwsNotes, useHallEngine } from "./useHallEngine";
 
 /*
-  The Party Hall — the product. Live video centre of gravity, spray
-  canvas layered over everything, chat rail and money rail beside it.
+  The room — the product. Live video centre of gravity, the note canvas
+  layered over it (spraying only), chat and money rails beside it.
 
-  The event arrives as data. Today it is DEMO_EVENT; in U1.0 it will be
-  loaded by id from the events service, and nothing in here changes.
+  Everything visible here is driven by the event's ceremony, so the same
+  component runs a Lagos wedding, a Nairobi harambee, an Accra funeral
+  and a Johannesburg stokvel.
 */
 
-export function Hall({ event = DEMO_EVENT }: { event?: OwambeEvent }) {
+export function Hall({ event }: { event: OwambeEvent }) {
   const canvasRef = useRef<SprayCanvasHandle>(null);
   const [deckOpen, setDeckOpen] = useState(false);
   const [mobileRail, setMobileRail] = useState<"board" | "chat">("board");
+  const notes = throwsNotes(event);
+  const surge = surgeLabel(event);
+  const emotes = emotesFor(event);
 
-  const onSprayVisual = useCallback((v: SprayVisual) => {
-    canvasRef.current?.burst(v.noteCount, v.origin);
-  }, []);
+  const onGiftVisual = useCallback(
+    (v: GiftVisual) => {
+      if (notes) canvasRef.current?.burst(v.noteCount, v.origin);
+    },
+    [notes],
+  );
 
-  const { state, spray, sendChat, sendEmote } = useHallEngine(event, onSprayVisual);
+  const { state, give, sendChat, sendEmote } = useHallEngine(event, onGiftVisual);
 
   useEffect(() => {
-    canvasRef.current?.setRain(state.rainActive);
-  }, [state.rainActive]);
+    if (notes) canvasRef.current?.setRain(state.rainActive);
+  }, [state.rainActive, notes]);
 
   return (
     <div className="flex h-dvh flex-col bg-ink-deep text-cream">
-      {/* Hall header: engraved invitation masthead */}
       <header className="flex items-center justify-between border-b border-rule-strong bg-ink px-4 py-2.5">
         <div className="flex items-baseline gap-3">
-          <span className="font-display text-[17px] tracking-wide text-cream">Owambe</span>
-          <span className="microlabel hidden sm:inline">The hall of {event.title}</span>
+          <Link href="/" className="font-display text-[17px] tracking-wide text-cream">
+            Owambe
+          </Link>
+          <span className="microlabel hidden sm:inline">{event.title}</span>
         </div>
         <div className="flex items-center gap-4">
           <span className="microlabel hidden md:inline">{event.hashtag}</span>
-          <button className="microlabel cursor-pointer border border-rule-strong px-3 py-1.5 !text-cream transition-colors duration-200 hover:border-cream-mute">
-            Invite
-          </button>
+          <Link
+            href={`/e/${event.id}/wall`}
+            className="microlabel cursor-pointer border border-rule-strong px-3 py-1.5 !text-cream transition-colors duration-200 hover:border-cream-mute"
+          >
+            The wall
+          </Link>
         </div>
       </header>
 
-      {/* Three-rail layout. On phones the rails become a drawer under the floor —
-          the board and the chat are core to the product, never dropped. */}
       <div className="relative grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] lg:grid-cols-[260px_1fr_290px] lg:grid-rows-1">
         <div className="hidden min-h-0 border-r border-rule lg:block">
-          <MoneyRail event={event} guests={state.guests} totalLocal={state.totalLocal} />
+          <MoneyRail
+            event={event}
+            guests={state.guests}
+            totalUsd={state.totalUsd}
+            outstandingUsd={state.outstandingUsd}
+          />
         </div>
 
-        {/* Centre: floor + spray canvas + deck */}
         <div className="relative min-h-0 min-w-0">
           <LiveFloor
             event={event}
@@ -64,13 +78,11 @@ export function Hall({ event = DEMO_EVENT }: { event?: OwambeEvent }) {
             emotes={state.emotes}
             shoutout={state.shoutout}
             programmeIndex={state.programmeIndex}
-            rainActive={state.rainActive}
+            surgeActive={state.rainActive}
           />
 
-          {/* The spray canvas covers the whole centre column */}
-          <SprayCanvas ref={canvasRef} />
+          {notes && <SprayCanvas ref={canvasRef} />}
 
-          {/* Rain announcement */}
           {state.rainActive && (
             <div className="pointer-events-none absolute inset-x-0 top-[38%] z-30 text-center">
               <div
@@ -78,21 +90,20 @@ export function Hall({ event = DEMO_EVENT }: { event?: OwambeEvent }) {
                 style={{ animation: "rain-enter var(--t-room) var(--ease-ceremony)" }}
               >
                 <span className="font-display text-[26px] tracking-wide text-gold-bright">
-                  OWAMBE RAIN
+                  {surge.title}
                 </span>
-                <div className="microlabel mt-1 !text-cream">The room is raining money</div>
+                <div className="microlabel mt-1 !text-cream">{surge.sub}</div>
               </div>
             </div>
           )}
 
-          {/* Emote bar + spray trigger */}
           <div className="absolute inset-x-0 bottom-0 z-20 flex items-stretch border-t border-rule-strong bg-ink/95">
             <div
               className="flex flex-1 items-center gap-0 overflow-x-auto"
               role="toolbar"
-              aria-label="Emotes"
+              aria-label="Gestures"
             >
-              {EMOTES.map((e) => (
+              {emotes.map((e) => (
                 <button
                   key={e.kind}
                   onClick={() => sendEmote(e.kind, e.label)}
@@ -114,7 +125,7 @@ export function Hall({ event = DEMO_EVENT }: { event?: OwambeEvent }) {
             open={deckOpen}
             event={event}
             onClose={() => setDeckOpen(false)}
-            onThrow={(amountUsd, opts) => spray(YOU_ID, amountUsd, opts)}
+            onGive={(amountUsd, opts) => give(YOU_ID, amountUsd, opts)}
           />
         </div>
 
@@ -122,7 +133,6 @@ export function Hall({ event = DEMO_EVENT }: { event?: OwambeEvent }) {
           <ChatRail event={event} chat={state.chat} guests={state.guests} onSend={sendChat} />
         </div>
 
-        {/* Phone: one rail at a time, chosen by the guest */}
         <div className="flex min-h-0 flex-col border-t border-rule-strong lg:hidden">
           <div role="tablist" aria-label="Rails" className="flex border-b border-rule bg-ink">
             {(["board", "chat"] as const).map((r) => (
@@ -132,18 +142,21 @@ export function Hall({ event = DEMO_EVENT }: { event?: OwambeEvent }) {
                 aria-selected={mobileRail === r}
                 onClick={() => setMobileRail(r)}
                 className={`microlabel flex-1 cursor-pointer border-b-2 py-3 transition-colors duration-200 ${
-                  mobileRail === r
-                    ? "border-gold !text-cream"
-                    : "border-transparent !text-cream-faint"
+                  mobileRail === r ? "border-gold !text-cream" : "border-transparent !text-cream-faint"
                 }`}
               >
-                {r === "board" ? "Owambe Board" : "Chat"}
+                {r === "board" ? event.ceremony.boardLabel : "Chat"}
               </button>
             ))}
           </div>
           <div className="h-[42dvh] min-h-0">
             {mobileRail === "board" ? (
-              <MoneyRail event={event} guests={state.guests} totalLocal={state.totalLocal} />
+              <MoneyRail
+                event={event}
+                guests={state.guests}
+                totalUsd={state.totalUsd}
+                outstandingUsd={state.outstandingUsd}
+              />
             ) : (
               <ChatRail event={event} chat={state.chat} guests={state.guests} onSend={sendChat} />
             )}
