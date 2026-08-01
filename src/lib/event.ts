@@ -90,6 +90,11 @@ export type CeremonyType = {
   boardLabel: string;
   /** True if giving is a promise rather than a payment (Kenya). */
   pledgeBased: boolean;
+  /**
+   * Which pool of guest names fills this room. Defaults to the country,
+   * but a Kano wedding should not be full of Lagos names.
+   */
+  guestPool?: string;
 };
 
 export const OWAMBE_WEDDING: CeremonyType = {
@@ -234,8 +239,44 @@ export const NAMING_CEREMONY: CeremonyType = {
   ],
 };
 
+export const HAUSA_FATIHA: CeremonyType = {
+  id: "ng-hausa-fatiha",
+  label: "Hausa Wedding Fatiha",
+  country: "NG",
+  givingVerb: "Spray",
+  givingNoun: "gifts",
+  style: "spray",
+  blurb:
+    "After the Daurin Aure, the bride is kept by her friends until the groom's side pays the Kamu to release her. The walima that follows is where the room shows its regard.",
+  /* [review] amarya = bride, ango = groom. Confirm with a Hausa speaker. */
+  sides: [
+    { key: "amarya", label: "Amarya's side" },
+    { key: "ango", label: "Ango's side" },
+  ],
+  /*
+    [review] Guest, friend, kinsman, person of means. Deliberately avoids
+    religious titles such as Alhaji, which are earned by pilgrimage and must
+    never be handed out for spending money.
+  */
+  tierNames: ["Baƙo", "Aboki", "Ɗan'uwa", "Attajiri"],
+  totalLabel: "Given today",
+  boardLabel: "Those who gave",
+  pledgeBased: false,
+  guestPool: "NG-north",
+  programme: [
+    { label: "Formal greetings", local: "Gaisuwa" },
+    { label: "Henna night for the bride", local: "Sa Lalle" },
+    { label: "The marriage is tied", local: "Daurin Aure" },
+    { label: "The bride is taken home", local: "Kai Amarya" },
+    { label: "Her friends hold her for payment", local: "Kamu" },
+    { label: "Unveiling of the bride", local: "Budan Kai" },
+    { label: "The wedding feast", local: "Walima" },
+  ],
+};
+
 export const CEREMONIES: CeremonyType[] = [
   OWAMBE_WEDDING,
+  HAUSA_FATIHA,
   NAMING_CEREMONY,
   HARAMBEE,
   GHANA_FUNERAL,
@@ -341,6 +382,23 @@ export const EVENTS: OwambeEvent[] = [
     seedRaisedUsd: 640,
     guestCount: 38,
     hostName: "Masakhane members",
+  },
+  {
+    id: "hauwa",
+    title: "Hauwa'u ♥ Sani",
+    honouree: "Hauwa'u & Sani Abubakar",
+    ceremony: HAUSA_FATIHA,
+    venue: "Coronation Hall, Nassarawa GRA",
+    city: "Kano",
+    hashtag: "#HauwaSani26",
+    clothName: "Indigo & Silver",
+    accent: "#3b3f9e",
+    accentDeep: "#282c72",
+    status: "live",
+    startsInMinutes: -55,
+    seedRaisedUsd: 1560,
+    guestCount: 214,
+    hostName: "The Abubakar family",
   },
   {
     id: "chiamaka",

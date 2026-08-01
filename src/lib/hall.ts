@@ -9,13 +9,7 @@
   currency symbol.
 */
 
-import {
-  CountryCode,
-  OwambeEvent,
-  eventCurrency,
-  toLocal,
-  tierForUsd,
-} from "./event";
+import { OwambeEvent, eventCurrency, toLocal, tierForUsd } from "./event";
 
 export type Guest = {
   id: string;
@@ -99,8 +93,11 @@ export const YOU_ID = "g_you";
 
 type Seed = { name: string; city: string };
 
-/** Local and diaspora names per country. Replaced by real attendance in U1.0. */
-const GUEST_POOLS: Record<CountryCode, Seed[]> = {
+/**
+ * Local and diaspora names, keyed by country or by a ceremony's own pool.
+ * Replaced by real attendance in U1.0.
+ */
+const GUEST_POOLS: Record<string, Seed[]> = {
   NG: [
     { name: "Aunty Bisi", city: "Houston" },
     { name: "Chief Emeka", city: "London" },
@@ -113,6 +110,20 @@ const GUEST_POOLS: Record<CountryCode, Seed[]> = {
     { name: "Chidinma", city: "Houston" },
     { name: "Kunle F.", city: "Abuja" },
     { name: "Amara J.", city: "New York" },
+  ],
+  /* A Kano wedding is not a Lagos one. Northern names and cities. */
+  "NG-north": [
+    { name: "Hajiya Zainab", city: "Kano" },
+    { name: "Malam Sani", city: "Kaduna" },
+    { name: "Aisha B.", city: "London" },
+    { name: "Yusuf D.", city: "Abuja" },
+    { name: "Fatima A.", city: "Katsina" },
+    { name: "Ummi & Nafisa", city: "Sokoto" },
+    { name: "Ibrahim M.", city: "Jeddah" },
+    { name: "Maryam S.", city: "Maiduguri" },
+    { name: "Bashir K.", city: "Zaria" },
+    { name: "Hauwa L.", city: "Toronto" },
+    { name: "Amina G.", city: "Bauchi" },
   ],
   KE: [
     { name: "Mama Njeri", city: "Nairobi" },
@@ -159,7 +170,9 @@ const GUEST_POOLS: Record<CountryCode, Seed[]> = {
 const SHARE = [0.22, 0.18, 0.13, 0.1, 0.08, 0.07, 0.06, 0.05, 0.04, 0.04, 0.03];
 
 export function makeGuests(event: OwambeEvent): Guest[] {
-  const pool = GUEST_POOLS[event.ceremony.country];
+  const pool =
+    GUEST_POOLS[event.ceremony.guestPool ?? event.ceremony.country] ??
+    GUEST_POOLS[event.ceremony.country];
   const sides = event.ceremony.sides;
   const you: Guest = {
     id: YOU_ID,
@@ -192,6 +205,19 @@ export function givenLocal(g: Guest, event: OwambeEvent): number {
 
 /** Chatter differs by ceremony. A funeral room does not shout. */
 export function ambientChat(event: OwambeEvent): string[] {
+  /* A Kano walima does not sound like a Lagos owambe. */
+  if (event.ceremony.id === "ng-hausa-fatiha") {
+    return [
+      "Barka da aure! Congratulations to both families",
+      "The Kamu is going to be expensive tonight 😂",
+      "Amarya looks so beautiful mashaAllah",
+      "Watching from Jeddah, may Allah bless this union",
+      "Ango's side, do not embarrass us",
+      "That lalle work is art, honestly",
+      "Who is handling the walima catering?",
+      "Greetings to the Abubakar family from Kaduna",
+    ];
+  }
   switch (event.ceremony.style) {
     case "pledge":
       return [
@@ -238,6 +264,9 @@ export function ambientChat(event: OwambeEvent): string[] {
 }
 
 export function ambientMessages(event: OwambeEvent): string[] {
+  if (event.ceremony.id === "ng-hausa-fatiha") {
+    return ["Barka da aure", "For the Kamu", "May Allah bless you both", "From the family in Kaduna"];
+  }
   switch (event.ceremony.style) {
     case "pledge":
       return ["For Wanjiku's treatment", "From the Kilimani group", "God heal her", "From all of us abroad"];
@@ -252,6 +281,9 @@ export function ambientMessages(event: OwambeEvent): string[] {
 
 /** The opening line the room sees when it loads. */
 export function openingLine(event: OwambeEvent): string {
+  if (event.ceremony.id === "ng-hausa-fatiha") {
+    return "The Daurin Aure is done. Barka da aure!";
+  }
   switch (event.ceremony.style) {
     case "pledge":
       return "The chairperson has opened the harambee. Karibu!";
