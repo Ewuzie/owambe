@@ -54,7 +54,7 @@ export function LiveFloor({
                   state === "done"
                     ? "bg-ink-faint"
                     : state === "now"
-                      ? "bg-on-accent"
+                      ? "step-now bg-on-accent"
                       : "bg-rule-strong"
                 }`}
                 aria-hidden="true"
@@ -75,9 +75,10 @@ export function LiveFloor({
         })}
       </div>
 
-      {/* The stage */}
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-accent text-on-accent">
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
+      {/* The stage. The cloth drifts behind the names so the room is never
+          completely still, even when nobody is giving. */}
+      <div className="cloth relative min-h-0 flex-1 overflow-hidden bg-accent text-on-accent">
+        <div className="rise absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
           <span className="microlabel !text-on-accent/75">
             {event.venue}, {event.city}
           </span>

@@ -206,9 +206,149 @@ body {
   animation: shoutout-enter var(--t-quick) var(--ease-snap);
 }
 
+/* Entrance: content rises in rather than appearing flatly. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise-in 520ms var(--ease-snap) both;
+}
+/* Staggered children, so a list arrives in sequence instead of all at once. */
+.stagger > * {
+  animation: rise-in 480ms var(--ease-snap) both;
+}
+.stagger > *:nth-child(1) {
+  animation-delay: 40ms;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 90ms;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 140ms;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 190ms;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+.stagger > *:nth-child(6) {
+  animation-delay: 290ms;
+}
+.stagger > *:nth-child(n + 7) {
+  animation-delay: 340ms;
+}
+
+/* A new line arriving in chat or the ledger. */
+@keyframes line-in {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.line-in {
+  animation: line-in 280ms var(--ease-snap) both;
+}
+
+/* The total kicks when it grows, so money landing is felt, not just read. */
+@keyframes total-kick {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.055);
+    color: var(--accent);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.total-kick {
+  animation: total-kick 420ms var(--ease-snap);
+  transform-origin: left center;
+}
+
+/* A board row flashes when that person has just given. */
+@keyframes row-flash {
+  0% {
+    background-color: var(--accent);
+    color: var(--on-accent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.row-flash {
+  animation: row-flash 900ms var(--ease-ceremony);
+}
+
+/* The stage is never dead: the cloth drifts slowly behind the names. */
+@keyframes cloth-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 96px 96px;
+  }
+}
+.cloth {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.07) 0 2px,
+    transparent 2px 24px
+  );
+  background-size: 96px 96px;
+  animation: cloth-drift 14s linear infinite;
+}
+
+/* The current programme step breathes. */
+@keyframes step-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+.step-now {
+  animation: step-breathe 2.4s ease-in-out infinite;
+}
+
+/*
+  Reduced motion: the moment still has to land, so nothing is simply
+  disabled. Entrances become instant, loops stop, and the kick becomes a
+  colour change with no movement.
+*/
 @media (prefers-reduced-motion: reduce) {
-  .live-pulse {
+  .live-pulse,
+  .cloth,
+  .step-now {
     animation: none;
     opacity: 1;
+  }
+  .rise,
+  .stagger > *,
+  .line-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .total-kick {
+    animation: total-kick 420ms step-end;
+  }
+  .row-flash {
+    animation: row-flash 600ms step-end;
   }
 }

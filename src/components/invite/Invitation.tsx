@@ -53,11 +53,11 @@ export function Invitation({ event }: { event: OwambeEvent }) {
             <span className="microlabel !text-on-accent">{startsInLabel(event)}</span>
           </div>
 
-          <p className="microlabel mt-8 !text-on-accent/80">You are invited to</p>
-          <h1 className="display mt-3 text-[clamp(38px,9.5vw,116px)]">{event.title}</h1>
-          <p className="mt-6 text-[15px] text-on-accent/90">{event.honouree}</p>
+          <p className="microlabel rise mt-8 !text-on-accent/80">You are invited to</p>
+          <h1 className="rise display mt-3 text-[clamp(38px,9.5vw,116px)]">{event.title}</h1>
+          <p className="rise mt-6 text-[15px] text-on-accent/90">{event.honouree}</p>
 
-          <div className="mt-12 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="rise mt-12 flex flex-col gap-4 sm:flex-row sm:items-center">
             <Link
               href={isEnded ? `/e/${event.id}/wall` : `/e/${event.id}/hall`}
               className="display cursor-pointer bg-paper px-9 py-5 text-center text-[18px] text-ink transition-colors duration-150 hover:bg-paper-3"
@@ -113,7 +113,7 @@ export function Invitation({ event }: { event: OwambeEvent }) {
         {/* Programme */}
         <section className="py-14">
           <h2 className="display text-[clamp(24px,4vw,44px)]">Programme</h2>
-          <ol className="mt-6 border-t-2 border-ink">
+          <ol className="stagger mt-6 border-t-2 border-ink">
             {ceremony.programme.map((item, i) => (
               <li key={item.label} className="ledger-row flex items-baseline gap-5 py-4">
                 <span className="money w-8 flex-none text-[13px] text-accent">

@@ -35,6 +35,7 @@ export function Hall({ event }: { event: OwambeEvent }) {
   );
 
   const { state, give, sendChat, sendEmote } = useHallEngine(event, onGiftVisual);
+  const lastGift = state.gifts[state.gifts.length - 1];
 
   useEffect(() => {
     if (notes) canvasRef.current?.setRain(state.rainActive);
@@ -67,6 +68,8 @@ export function Hall({ event }: { event: OwambeEvent }) {
             guests={state.guests}
             totalUsd={state.totalUsd}
             outstandingUsd={state.outstandingUsd}
+            lastGiftId={lastGift?.id}
+            lastGiftGuestId={lastGift?.guestId}
           />
         </div>
 
@@ -155,6 +158,8 @@ export function Hall({ event }: { event: OwambeEvent }) {
                 guests={state.guests}
                 totalUsd={state.totalUsd}
                 outstandingUsd={state.outstandingUsd}
+                lastGiftId={lastGift?.id}
+                lastGiftGuestId={lastGift?.guestId}
               />
             ) : (
               <ChatRail event={event} chat={state.chat} guests={state.guests} onSend={sendChat} />

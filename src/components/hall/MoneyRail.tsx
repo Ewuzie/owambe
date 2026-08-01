@@ -58,15 +58,32 @@ export function MoneyRail({
   guests,
   totalUsd,
   outstandingUsd,
+  lastGiftId,
+  lastGiftGuestId,
 }: {
   event: OwambeEvent;
   guests: Guest[];
   totalUsd: number;
   outstandingUsd: number;
+  lastGiftId?: string;
+  lastGiftGuestId?: string;
 }) {
   const currency = eventCurrency(event);
   const fmt = (n: number) => formatMoney(n, currency);
   const totalRef = useTickingTotal(toLocal(totalUsd, currency), fmt);
+
+  /* The total kicks when money lands, so it is felt and not merely read.
+     Driven straight on the node: restarting a CSS animation through state
+     would re-render the whole rail every time anyone in the room gives. */
+  useEffect(() => {
+    const el = totalRef.current;
+    if (!el || !lastGiftId) return;
+    el.classList.remove("total-kick");
+    void el.offsetWidth; /* reflow, so the animation restarts */
+    el.classList.add("total-kick");
+    const t = setTimeout(() => el.classList.remove("total-kick"), 460);
+    return () => clearTimeout(t);
+  }, [lastGiftId, totalRef]);
 
   const board = [...guests].sort((a, b) => b.givenUsd - a.givenUsd).slice(0, 10);
   const leadId = board[0]?.id;
@@ -142,10 +159,12 @@ export function MoneyRail({
             const sc = sideClasses(event, g.side);
             return (
               <li
-                key={g.id}
+                /* Keyed on the gift so the giver's row remounts and the
+                   flash replays, without a re-render of the whole board. */
+                key={g.id === lastGiftGuestId ? `${g.id}-${lastGiftId}` : g.id}
                 className={`ledger-row flex items-center gap-2.5 py-2.5 ${
                   isLead ? "bg-accent px-2 text-on-accent" : ""
-                }`}
+                } ${g.id === lastGiftGuestId && !isLead ? "row-flash" : ""}`}
               >
                 <span
                   className={`money w-4 flex-none text-[11px] ${

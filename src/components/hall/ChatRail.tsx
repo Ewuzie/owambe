@@ -102,14 +102,14 @@ function ChatLine({
 }) {
   if (msg.kind === "ledger") {
     return (
-      <div className="my-1.5 border-l-4 border-accent bg-paper-2 py-2 pl-3">
+      <div className="line-in my-1.5 border-l-4 border-accent bg-paper-2 py-2 pl-3">
         <span className="money text-[12px] font-bold leading-snug">{msg.text}</span>
       </div>
     );
   }
   if (msg.kind === "system") {
     return (
-      <div className="my-2.5">
+      <div className="line-in my-2.5">
         <span className="microlabel !text-accent">{msg.text}</span>
       </div>
     );
@@ -121,7 +121,7 @@ function ChatLine({
       ? sideClasses(event, guest.side).text
       : "text-ink-mute";
   return (
-    <div className="py-1 text-[13px] leading-snug">
+    <div className="line-in py-1 text-[13px] leading-snug">
       <span className={`mr-1.5 font-bold ${nameColour}`}>{guest?.name ?? "Guest"}</span>
       <span className="text-ink-mute">{msg.text}</span>
     </div>

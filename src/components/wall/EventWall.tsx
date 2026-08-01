@@ -40,7 +40,7 @@ export function EventWall({ event }: { event: OwambeEvent }) {
           <p className="microlabel mt-14 !text-on-accent/80">
             {event.status === "ended" ? "This celebration has ended" : "The record so far"}
           </p>
-          <h1 className="display mt-3 text-[clamp(34px,8.5vw,104px)]">{event.title}</h1>
+          <h1 className="rise display mt-3 text-[clamp(34px,8.5vw,104px)]">{event.title}</h1>
           <p className="mt-5 text-[14px] text-on-accent/90">
             {ceremony.label} · {event.venue}, {event.city}, {country.name}
           </p>
@@ -77,7 +77,7 @@ export function EventWall({ event }: { event: OwambeEvent }) {
             <h2 className="display text-[clamp(24px,4vw,44px)]">Everyone who gave</h2>
             <span className="microlabel">{guests.length} names</span>
           </div>
-          <ol className="mt-6 border-t-2 border-ink">
+          <ol className="stagger mt-6 border-t-2 border-ink">
             {guests.map((g, i) => (
               <li key={g.id} className="ledger-row flex items-center gap-5 py-4">
                 <span className="money w-8 flex-none text-[13px] text-accent">

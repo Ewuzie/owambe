@@ -44,15 +44,13 @@ export function CelebrationsHome() {
             <span className="microlabel">Africa</span>
           </div>
 
-          <h1 className="display mt-10 text-[clamp(42px,11vw,132px)]">
-            Be there.
-            <br />
-            Be seen.
-            <br />
-            <span className="text-accent">Give big.</span>
+          <h1 className="stagger display mt-10 text-[clamp(42px,11vw,132px)]">
+            <span className="block">Be there.</span>
+            <span className="block">Be seen.</span>
+            <span className="block text-accent">Give big.</span>
           </h1>
 
-          <p className="mt-8 max-w-lg text-[15px] leading-relaxed text-ink-mute">
+          <p className="rise mt-8 max-w-lg text-[15px] leading-relaxed text-ink-mute">
             Every culture on this continent has a way of putting money into a moment,
             in front of everybody. Owambe carries that across the distance, and it
             lands in a local account the same night.
@@ -125,7 +123,7 @@ function Section({
         <h2 className="display text-[clamp(22px,3.4vw,34px)]">{title}</h2>
         <span className="microlabel">{count}</span>
       </div>
-      <div className="mt-5 border-t-2 border-ink">{children}</div>
+      <div className="stagger mt-5 border-t-2 border-ink">{children}</div>
     </section>
   );
 }
