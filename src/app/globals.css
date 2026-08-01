@@ -206,6 +206,42 @@ body {
   animation: shoutout-enter var(--t-quick) var(--ease-snap);
 }
 
+/*
+  A big giver's name, blinking over the room for as long as their money
+  falls. Loud on purpose — this is the moment being bought.
+*/
+@keyframes name-blink {
+  0%,
+  44% {
+    opacity: 1;
+  }
+  50%,
+  60% {
+    opacity: 0.12;
+  }
+  66%,
+  100% {
+    opacity: 1;
+  }
+}
+.name-blink {
+  animation: name-blink 1.15s steps(1, end) infinite;
+}
+
+@keyframes storm-in {
+  from {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.storm-in {
+  animation: storm-in 380ms var(--ease-snap) both;
+}
+
 /* Entrance: content rises in rather than appearing flatly. */
 @keyframes rise-in {
   from {
@@ -337,6 +373,16 @@ body {
   .step-now {
     animation: none;
     opacity: 1;
+  }
+  /* The name still holds the room, it just stops flashing. */
+  .name-blink {
+    animation: none;
+    opacity: 1;
+  }
+  .storm-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
   .rise,
   .stagger > *,

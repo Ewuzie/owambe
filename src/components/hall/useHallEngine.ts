@@ -38,6 +38,43 @@ export type Shoutout = {
   pledged: boolean;
 };
 
+/**
+ * A big gift takes over the room.
+ *
+ * The complaint this answers: a $1 spray and a ₦1,000,000 spray looked the
+ * same. They must not. Serious money should be impossible to ignore, and it
+ * should last long enough that everyone present sees whose name it was.
+ */
+export type Storm = {
+  id: string;
+  giverName: string;
+  amountUsd: number;
+  /** Wall-clock end, so the length is felt rather than guessed. */
+  endsAt: number;
+  startedAt: number;
+  /** Notes per second for the canvas. */
+  intensity: number;
+};
+
+/**
+ * Below this, a gift is just a burst. At or above, it takes the room.
+ * Deliberately above what the ambient guests ever give: if the room
+ * stormed every half minute the takeover would stop meaning anything.
+ */
+export const STORM_MIN_USD = 100;
+
+/** Three minutes at roughly ₦1,000,000, which is about $633 at the locked rate. */
+export const STORM_MAX_MS = 180_000;
+
+export function stormDurationMs(amountUsd: number): number {
+  return Math.min(STORM_MAX_MS, Math.max(6_000, Math.round(amountUsd * 285)));
+}
+
+export function stormIntensity(amountUsd: number): number {
+  /* Capped so a mid-range Android still holds its frame rate. */
+  return Math.min(42, Math.max(8, Math.round(amountUsd / 11)));
+}
+
 export type HallState = {
   guests: Guest[];
   gifts: Gift[];
@@ -51,6 +88,7 @@ export type HallState = {
   emotes: FloatingEmote[];
   shoutout: Shoutout | null;
   shoutoutQueue: Shoutout[];
+  storm: Storm | null;
 };
 
 const RAIN_THRESHOLD = 3;
@@ -80,6 +118,7 @@ function makeInitialState(event: OwambeEvent): HallState {
     emotes: [],
     shoutout: null,
     shoutoutQueue: [],
+    storm: null,
   };
 }
 
@@ -101,6 +140,7 @@ type Action =
   | { type: "rain.start"; now: number; label: string }
   | { type: "rain.end"; now: number }
   | { type: "shoutout.next" }
+  | { type: "storm.end" }
   | { type: "programme.advance"; now: number; programmeLength: number; label: string };
 
 function reducer(state: HallState, action: Action): HallState {
@@ -149,6 +189,25 @@ function reducer(state: HallState, action: Action): HallState {
               },
             ]
           : state.shoutoutQueue;
+      /*
+        A big gift takes the room. A bigger one during a storm replaces it;
+        a smaller one does not cut the big name short.
+      */
+      let storm = state.storm;
+      if (action.amountUsd >= STORM_MIN_USD) {
+        const stillRunning = storm && storm.endsAt > action.now;
+        if (!stillRunning || action.amountUsd >= storm!.amountUsd) {
+          storm = {
+            id: gift.id,
+            giverName: displayName,
+            amountUsd: action.amountUsd,
+            startedAt: action.now,
+            endsAt: action.now + stormDurationMs(action.amountUsd),
+            intensity: stormIntensity(action.amountUsd),
+          };
+        }
+      }
+
       return {
         ...state,
         guests,
@@ -157,6 +216,7 @@ function reducer(state: HallState, action: Action): HallState {
         totalUsd: state.totalUsd + action.amountUsd,
         outstandingUsd: state.outstandingUsd + (action.pledged ? action.amountUsd : 0),
         shoutoutQueue,
+        storm,
       };
     }
     case "chat":
@@ -205,6 +265,8 @@ function reducer(state: HallState, action: Action): HallState {
       const [next, ...rest] = state.shoutoutQueue;
       return { ...state, shoutout: next ?? null, shoutoutQueue: rest };
     }
+    case "storm.end":
+      return { ...state, storm: null };
     case "programme.advance":
       return {
         ...state,
@@ -341,6 +403,18 @@ export function useHallEngine(event: OwambeEvent, onGiftVisual: (v: GiftVisual) 
     }
   }, [state.gifts]);
 
+  /* Ends the storm when its clock runs out. */
+  useEffect(() => {
+    if (!state.storm) return;
+    const left = state.storm.endsAt - Date.now();
+    if (left <= 0) {
+      dispatch({ type: "storm.end" });
+      return;
+    }
+    const t = setTimeout(() => dispatch({ type: "storm.end" }), left);
+    return () => clearTimeout(t);
+  }, [state.storm]);
+
   useEffect(() => {
     if (state.shoutout === null && state.shoutoutQueue.length > 0) {
       dispatch({ type: "shoutout.next" });
@@ -376,7 +450,8 @@ export function useHallEngine(event: OwambeEvent, onGiftVisual: (v: GiftVisual) 
         const k = pool[Math.floor(Math.random() * pool.length)];
         dispatch({ type: "emote", guestId: g.id, kind: k.kind, label: k.label, now: Date.now() });
       } else {
-        const amounts = [1, 5, 5, 20, 20, 50, 100];
+        /* Kept under STORM_MIN_USD so the takeover stays a real event. */
+        const amounts = [1, 5, 5, 20, 20, 50];
         const amountUsd = amounts[Math.floor(Math.random() * amounts.length)];
         dispatch({
           type: "gift",

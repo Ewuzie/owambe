@@ -14,6 +14,15 @@ import {
   rateLine,
   toLocal,
 } from "@/lib/event";
+import { STORM_MIN_USD, stormDurationMs } from "./useHallEngine";
+
+function formatDuration(ms: number): string {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s} seconds`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r === 0 ? `${m} minutes` : `${m}m ${r}s`;
+}
 
 /*
   The giving deck. Denominations, not amounts.
@@ -274,6 +283,17 @@ function GiveSheet({
             Anonymous
           </label>
         </div>
+
+        {/* What this much money buys you in the room. */}
+        {isThrow && amount >= STORM_MIN_USD && (
+          <div className="flex items-baseline gap-3 border-t border-rule bg-accent px-5 py-2.5 text-on-accent">
+            <span className="microlabel !text-on-accent">Takes the room</span>
+            <span className="money text-[13px] font-bold">
+              {formatDuration(stormDurationMs(amount))} of notes falling, your name over
+              the floor
+            </span>
+          </div>
+        )}
 
         <div className="border-t-2 border-ink bg-paper-2 px-5 py-3">
           <p className="money text-[11.5px] leading-relaxed text-ink-mute">

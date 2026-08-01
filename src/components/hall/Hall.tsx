@@ -10,6 +10,7 @@ import { LiveFloor } from "./LiveFloor";
 import { MoneyRail } from "./MoneyRail";
 import { SprayCanvas, SprayCanvasHandle } from "./SprayCanvas";
 import { SprayDeck } from "./SprayDeck";
+import { StormBanner } from "./StormBanner";
 import { GiftVisual, surgeLabel, throwsNotes, useHallEngine } from "./useHallEngine";
 
 /*
@@ -37,9 +38,17 @@ export function Hall({ event }: { event: OwambeEvent }) {
   const { state, give, sendChat, sendEmote } = useHallEngine(event, onGiftVisual);
   const lastGift = state.gifts[state.gifts.length - 1];
 
+  /*
+    The downpour. A big gift outranks the room-wide surge, so a single
+    serious spray keeps falling even after the surge has passed.
+    Only ceremonies that actually throw cash get notes — nobody rains
+    money at a funeral.
+  */
   useEffect(() => {
-    if (notes) canvasRef.current?.setRain(state.rainActive);
-  }, [state.rainActive, notes]);
+    if (!notes) return;
+    const rate = state.storm ? state.storm.intensity : state.rainActive ? 30 : 0;
+    canvasRef.current?.setStorm(rate);
+  }, [state.storm, state.rainActive, notes]);
 
   return (
     <AccentScope event={event} className="flex h-dvh flex-col bg-paper text-ink">
@@ -85,7 +94,10 @@ export function Hall({ event }: { event: OwambeEvent }) {
 
           {notes && <SprayCanvas ref={canvasRef} />}
 
-          {state.rainActive && (
+          {/* A big giver takes the room for as long as their money falls. */}
+          {state.storm && <StormBanner event={event} storm={state.storm} />}
+
+          {state.rainActive && !state.storm && (
             <div className="pointer-events-none absolute inset-x-0 top-[34%] z-30 text-center">
               <div
                 className="inline-block bg-ink px-9 py-5 text-paper"

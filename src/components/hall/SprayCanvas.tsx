@@ -19,7 +19,12 @@ import {
 export type SprayCanvasHandle = {
   /** Throw a burst of notes. origin "you" launches from the bottom, "room" drifts in from the top. */
   burst: (noteCount: number, origin: "you" | "room") => void;
-  setRain: (on: boolean) => void;
+  /**
+   * Sustained downpour, in notes per second. 0 stops it.
+   * A big spray keeps this running for minutes, which is the whole point:
+   * the room should be unable to ignore serious money.
+   */
+  setStorm: (notesPerSecond: number) => void;
 };
 
 type Note = {
@@ -43,7 +48,7 @@ export const SprayCanvas = forwardRef<SprayCanvasHandle, { className?: string }>
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const flying = useRef<Note[]>([]);
     const settled = useRef<Note[]>([]);
-    const raining = useRef(false);
+    const stormRate = useRef(0);
     const reduced = useRef(false);
     const running = useRef(false);
 
@@ -62,8 +67,8 @@ export const SprayCanvas = forwardRef<SprayCanvasHandle, { className?: string }>
           flying.current.push(makeNote(W, H, fromYou, reduced.current));
         }
       },
-      setRain(on) {
-        raining.current = on;
+      setStorm(notesPerSecond) {
+        stormRate.current = Math.max(0, notesPerSecond);
       },
     }));
 
@@ -98,21 +103,42 @@ export const SprayCanvas = forwardRef<SprayCanvasHandle, { className?: string }>
       let last = performance.now();
       let rainSpawnAcc = 0;
 
+      /*
+        A storm can run for three minutes. On a mid-range Android that is
+        exactly where the frame rate dies, so the canvas watches its own
+        pace and thins the downpour rather than stuttering. Degrade the
+        density, never the moment.
+      */
+      let avgDt = 1 / 60;
+      let budget = 1; /* 0.35 .. 1, multiplies spawn rate and note cap */
+
       const frame = (now: number) => {
         if (!running.current) return;
-        const dt = Math.min(0.033, (now - last) / 1000);
+        const rawDt = (now - last) / 1000;
+        const dt = Math.min(0.033, rawDt);
         last = now;
+
+        /* Rolling frame cost, then ease the budget toward what we can afford. */
+        avgDt = avgDt * 0.92 + Math.min(0.1, rawDt) * 0.08;
+        const target = avgDt > 1 / 34 ? 0.35 : avgDt > 1 / 48 ? 0.65 : 1;
+        budget += (target - budget) * 0.02;
         const dpr = window.devicePixelRatio || 1;
         const W = canvas.width / dpr;
         const H = canvas.height / dpr;
 
-        /* Rain mode: dense notes from the top */
-        if (raining.current) {
-          rainSpawnAcc += dt * (reduced.current ? 6 : 34);
-          while (rainSpawnAcc >= 1 && flying.current.length < MAX_FLYING) {
+        /* Downpour. Rate is set by how much money is falling. */
+        const cap = Math.round(MAX_FLYING * budget);
+        if (stormRate.current > 0) {
+          const rate = reduced.current
+            ? Math.min(6, stormRate.current)
+            : stormRate.current * budget;
+          rainSpawnAcc += dt * rate;
+          while (rainSpawnAcc >= 1 && flying.current.length < cap) {
             rainSpawnAcc -= 1;
             flying.current.push(makeRainNote(W, reduced.current));
           }
+          /* Never let the accumulator run away if we are at the note cap. */
+          if (flying.current.length >= cap) rainSpawnAcc = 0;
         }
 
         const pileBase = H - 6;
