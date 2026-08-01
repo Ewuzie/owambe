@@ -1,26 +1,242 @@
 @import "tailwindcss";
 
+/*
+  OWAMBE TOKEN LAYER — Aso-Ebi Ceremonial (Section 9.4 fallback, binding)
+
+  Ground: deep adire indigo. Light surface: warm paper cream.
+  Antique gold is reserved EXCLUSIVELY for money and the current Big Spender.
+  The party's aso-ebi colour (--aso-ebi) is set per party and tints
+  party-specific ceremony accents — never the money gold.
+
+  Every component consumes these tokens. No raw hex in components.
+*/
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* -- colour: ground & surfaces (adire indigo family) -- */
+  --ink-deep: #0e1428; /* page ground */
+  --ink: #131a33; /* room surface */
+  --ink-raised: #1a2242; /* rails, sheets */
+  --ink-well: #0a0f20; /* video well, canvas backdrop */
+
+  /* -- colour: paper (light surfaces, invitation card) -- */
+  --paper: #f4ecdd; /* warm cream */
+  --paper-shade: #e7dcc6;
+
+  /* -- colour: text on ink -- */
+  --cream: #efe7d6; /* primary text on indigo */
+  --cream-mute: #a9abbe; /* secondary/meta text on indigo */
+  --cream-faint: #6b7089; /* disabled, timestamps */
+
+  /* -- colour: text on paper -- */
+  --ink-text: #1c2340;
+  --ink-text-mute: #565d78;
+
+  /* -- colour: money gold — money and Big Spender ONLY -- */
+  --gold: #c9a227;
+  --gold-bright: #e3bf45; /* ticking totals, note highlights */
+  --gold-deep: #8f7118; /* borders on gold elements */
+
+  /* -- colour: per-party aso-ebi (host-set; demo party: coral) -- */
+  --aso-ebi: #d96c5f;
+  --aso-ebi-deep: #a84a40;
+  --aso-ebi-bride: #d96c5f; /* bride's side */
+  --aso-ebi-groom: #4f8a8b; /* groom's side */
+
+  /* -- colour: hairlines -- */
+  --rule: rgba(239, 231, 214, 0.14); /* hairline on ink */
+  --rule-strong: rgba(239, 231, 214, 0.32);
+  --rule-paper: rgba(28, 35, 64, 0.18); /* hairline on paper */
+
+  /* -- status -- */
+  --live: #c94f4f;
+  --ok: #7a9b6d;
+
+  /* -- shape: sharp, engraved -- */
+  --radius-0: 0px;
+  --radius-1: 2px;
+
+  /* -- borders -- */
+  --border-hair: 1px;
+
+  /* -- motion: ceremonial room, physical throw -- */
+  --t-fast: 120ms; /* throw feedback, presses */
+  --t-quick: 200ms; /* hovers, tabs */
+  --t-room: 600ms; /* room-wide moments */
+  --t-ceremony: 1200ms; /* programme advance, rain enter */
+  --ease-snap: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --ease-ceremony: cubic-bezier(0.6, 0, 0.2, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* colours */
+  --color-ink-deep: var(--ink-deep);
+  --color-ink: var(--ink);
+  --color-ink-raised: var(--ink-raised);
+  --color-ink-well: var(--ink-well);
+  --color-paper: var(--paper);
+  --color-paper-shade: var(--paper-shade);
+  --color-cream: var(--cream);
+  --color-cream-mute: var(--cream-mute);
+  --color-cream-faint: var(--cream-faint);
+  --color-ink-text: var(--ink-text);
+  --color-ink-text-mute: var(--ink-text-mute);
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+  --color-gold-deep: var(--gold-deep);
+  --color-aso: var(--aso-ebi);
+  --color-aso-deep: var(--aso-ebi-deep);
+  --color-bride: var(--aso-ebi-bride);
+  --color-groom: var(--aso-ebi-groom);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-rule-paper: var(--rule-paper);
+  --color-live: var(--live);
+  --color-ok: var(--ok);
+
+  /* type */
+  --font-display: var(--font-libre-bodoni), "Bodoni MT", Didot, serif;
+  --font-body: var(--font-public-sans), system-ui, sans-serif;
+  --font-money: var(--font-space-mono), "Courier New", monospace;
+
+  /* shape */
+  --radius-none: var(--radius-0);
+  --radius-hair: var(--radius-1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* base */
+html {
+  background: var(--ink-deep);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ink-deep);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+::selection {
+  background: var(--aso-ebi);
+  color: var(--paper);
+}
+
+/* micro-label: uppercase, letterspaced, the engraved-invitation section label */
+.microlabel {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cream-mute);
+}
+
+/* money figures: mono, tabular, right-aligned — totals tick, never jump */
+.money {
+  font-family: var(--font-money);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ledger row: hairline-separated, the record of the night */
+.ledger-row {
+  border-bottom: var(--border-hair) solid var(--rule);
+}
+
+/* left-rule accent, used instead of cards */
+.left-rule {
+  border-left: 2px solid var(--rule-strong);
+}
+.left-rule-gold {
+  border-left: 2px solid var(--gold);
+}
+.left-rule-aso {
+  border-left: 2px solid var(--aso-ebi);
+}
+
+/* square status marker (no pills) */
+.marker {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex: none;
+}
+
+/* focus: visible, engraved */
+:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
+/* scrollbars on rails: thin, quiet */
+.rail-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+
+/* live pulse */
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.live-pulse {
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+/* rain mode: room-wide dim + gold cast */
+@keyframes rain-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* emotes drift up over the floor */
+@keyframes emote-float {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  12% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-56px);
+  }
+}
+.emote-float {
+  animation: emote-float 2.6s var(--ease-ceremony) forwards;
+}
+
+/* MC shout-out banner rises from the base of the video */
+@keyframes shoutout-enter {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.shoutout-enter {
+  animation: shoutout-enter var(--t-quick) var(--ease-snap);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-pulse {
+    animation: none;
+    opacity: 1;
+  }
 }
