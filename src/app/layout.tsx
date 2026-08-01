@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Libre_Bodoni, Public_Sans, Space_Mono } from "next/font/google";
+import { Lexend_Mega, Public_Sans, Space_Mono } from "next/font/google";
 import "./globals.css";
 
-const libreBodoni = Libre_Bodoni({
-  variable: "--font-libre-bodoni",
+const lexendMega = Lexend_Mega({
+  variable: "--font-lexend-mega",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "700", "800", "900"],
 });
 
 const publicSans = Public_Sans({
@@ -22,8 +22,7 @@ const spaceMono = Space_Mono({
 
 export const metadata: Metadata = {
   title: "Owambe",
-  description:
-    "The virtual Nigerian party where the diaspora sprays real money.",
+  description: "The money layer for African celebrations.",
 };
 
 export default function RootLayout({
@@ -34,7 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${libreBodoni.variable} ${publicSans.variable} ${spaceMono.variable} h-full antialiased`}
+      className={`${lexendMega.variable} ${publicSans.variable} ${spaceMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -16,13 +16,11 @@ import {
 } from "@/lib/event";
 
 /*
-  The giving deck: opens as a sheet from the bottom, never a new page.
-  Denominations, not amounts.
+  The giving deck. Denominations, not amounts.
 
   The gesture matches the ceremony. You THROW at a wedding, because that
   is what spraying is. You do not throw money at a funeral or into a
-  savings pot — there you confirm an amount at a table. Same sheet, same
-  speed, different physical metaphor.
+  savings pot — there you confirm an entry at a table.
 
   Money model: the GIVER pays the fee, so the gift lands whole.
 */
@@ -107,41 +105,35 @@ function GiveSheet({
     if (threw) doGive();
   };
 
-  const recipientNoun = pledgeBased ? "They receive" : "Recipient receives";
-
   return (
     <div className="absolute inset-0 z-40 flex items-end" role="presentation">
-      <button
-        aria-label="Close"
-        onClick={onClose}
-        className="absolute inset-0 cursor-pointer bg-ink-well/70"
-      />
+      <button aria-label="Close" onClick={onClose} className="absolute inset-0 cursor-pointer bg-ink/60" />
+
       <div
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-label={`${givingVerb} deck`}
         tabIndex={-1}
-        className="relative z-10 w-full border-t-2 border-gold-deep bg-ink-raised outline-none"
+        className="relative z-10 w-full border-t-4 border-ink bg-paper outline-none"
       >
-        <div className="flex items-start justify-between border-b border-rule px-5 pb-3 pt-4">
-          <div>
-            <div className="microlabel">
+        {/* Header */}
+        <div className="flex items-end justify-between gap-4 bg-accent px-5 py-4 text-on-accent">
+          <div className="min-w-0">
+            <div className="microlabel !text-on-accent/80">
               {givingVerb} for {event.honouree}
             </div>
-            <div className="mt-1 font-display text-[18px] text-cream">
+            <div className="display mt-1.5 truncate text-[22px]">
               {count > 1 ? `${count} × ` : ""}
-              {formatUsd(denom)} {isThrow ? "notes" : ""}
+              {formatUsd(denom)}
             </div>
           </div>
-          <div className="text-right">
-            <div className="money text-[18px] font-bold text-gold-bright">{formatUsd(amount)}</div>
-            <div className="money text-[11px] text-cream-mute">
-              = {formatMoney(toLocal(amount, currency), currency)}
-            </div>
+          <div className="money flex-none text-right text-[26px] font-bold leading-none">
+            {formatMoney(toLocal(amount, currency), currency)}
           </div>
         </div>
 
+        {/* Denominations */}
         <div role="radiogroup" aria-label="Amount" className="grid grid-cols-5 border-b border-rule">
           {DENOMINATIONS_USD.map((d) => (
             <button
@@ -153,19 +145,21 @@ function GiveSheet({
                 setDenom(d);
                 setCount(1);
               }}
-              className={`cursor-pointer border-r border-rule px-2 py-3 text-center transition-colors duration-150 last:border-r-0 ${
-                denom === d ? "bg-ink text-gold-bright" : "text-cream-mute hover:text-cream"
+              className={`cursor-pointer border-r border-rule px-2 py-4 text-center transition-colors duration-150 last:border-r-0 ${
+                denom === d ? "bg-ink text-paper" : "hover:bg-paper-2"
               }`}
             >
-              <span className="money block text-[15px] font-bold">${d}</span>
-              <span className="money block text-[10px] opacity-70">
+              <span className="money block text-[17px] font-bold">${d}</span>
+              <span
+                className={`money block text-[10px] ${denom === d ? "text-paper/70" : "text-ink-faint"}`}
+              >
                 {formatMoney(toLocal(d, currency), currency)}
               </span>
             </button>
           ))}
         </div>
 
-        <div className="flex items-stretch gap-4 px-5 py-4">
+        <div className="flex items-stretch gap-5 px-5 py-5">
           <div className="flex flex-1 flex-col items-center justify-center">
             {isThrow ? (
               <>
@@ -195,36 +189,26 @@ function GiveSheet({
                   {Array.from({ length: Math.min(count, 8) }).map((_, i) => (
                     <div
                       key={i}
-                      className="absolute left-0 top-0 h-[52px] w-[110px] border border-gold-deep bg-gold"
+                      className="absolute left-0 top-0 h-[56px] w-[118px] border-2 border-ink bg-accent"
                       style={{ transform: `translate(${i * -1.5}px, ${i * -3}px) rotate(${(i % 3) - 1}deg)` }}
                       aria-hidden="true"
                     />
                   ))}
-                  <div className="relative flex h-[52px] w-[110px] items-center justify-center border border-gold-deep bg-gold">
-                    <span className="money text-[16px] font-bold text-ink-well">${denom}</span>
-                    <span className="pointer-events-none absolute inset-[3px] border border-gold-deep/50" />
+                  <div className="relative flex h-[56px] w-[118px] items-center justify-center border-2 border-ink bg-accent">
+                    <span className="money text-[18px] font-bold text-on-accent">${denom}</span>
                   </div>
                 </div>
-                <div className="microlabel mt-4">
-                  {dragging
-                    ? dragDy > 48
-                      ? "Release to throw!"
-                      : "Drag up…"
-                    : "Hold to load · drag up to throw"}
+                <div className="microlabel mt-5">
+                  {dragging ? (dragDy > 48 ? "Release!" : "Drag up…") : "Hold · drag up to throw"}
                 </div>
               </>
             ) : (
-              /* Recorded, not thrown: the ledger entry the clerk would write. */
-              <div className="w-full">
-                <div className="left-rule-gold border-b border-rule py-2 pl-3">
-                  <div className="microlabel">
-                    {pledgeBased ? "Your pledge" : "Entry for the record"}
-                  </div>
-                  <div className="money mt-1 text-[20px] font-bold text-gold-bright">
-                    {formatMoney(toLocal(amount, currency), currency)}
-                  </div>
+              <div className="w-full border-l-4 border-accent bg-paper-2 py-3 pl-4">
+                <div className="microlabel">{pledgeBased ? "Your pledge" : "Entry for the record"}</div>
+                <div className="money mt-1.5 text-[24px] font-bold">
+                  {formatMoney(toLocal(amount, currency), currency)}
                 </div>
-                <p className="mt-2 text-[11px] leading-snug text-cream-faint">
+                <p className="mt-2 text-[11.5px] leading-snug text-ink-mute">
                   {pledgeBased
                     ? "Announced now and read back by the clerk. You settle it after the harambee."
                     : "Recorded at the table and read out with your name."}
@@ -233,26 +217,26 @@ function GiveSheet({
             )}
           </div>
 
-          <div className="flex w-[150px] flex-none flex-col justify-between border-l border-rule pl-4">
+          <div className="flex w-[158px] flex-none flex-col justify-between border-l border-rule pl-5">
             <div>
               <label htmlFor="note-count" className="microlabel block">
                 {isThrow ? "Notes" : "Multiple"}
               </label>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2">
                 <button
                   aria-label="Decrease"
                   onClick={() => setCount((c) => Math.max(1, c - 1))}
-                  className="h-8 w-8 cursor-pointer border border-rule-strong text-cream transition-colors duration-150 hover:border-cream-mute"
+                  className="h-9 w-9 cursor-pointer border-2 border-ink font-bold transition-colors duration-150 hover:bg-ink hover:text-paper"
                 >
                   −
                 </button>
-                <output id="note-count" className="money w-8 text-center text-[15px] text-cream">
+                <output id="note-count" className="money w-8 text-center text-[16px] font-bold">
                   {count}
                 </output>
                 <button
                   aria-label="Increase"
                   onClick={() => setCount((c) => Math.min(20, c + 1))}
-                  className="h-8 w-8 cursor-pointer border border-rule-strong text-cream transition-colors duration-150 hover:border-cream-mute"
+                  className="h-9 w-9 cursor-pointer border-2 border-ink font-bold transition-colors duration-150 hover:bg-ink hover:text-paper"
                 >
                   +
                 </button>
@@ -260,9 +244,9 @@ function GiveSheet({
             </div>
             <button
               onClick={doGive}
-              className="mt-3 cursor-pointer border border-gold-deep bg-gold px-3 py-2.5 text-[13px] font-bold text-ink-well transition-colors duration-150 hover:bg-gold-bright"
+              className="display mt-4 cursor-pointer bg-ink px-3 py-4 text-[15px] text-paper transition-colors duration-150 hover:bg-accent"
             >
-              {givingVerb} {formatUsd(amount)}
+              {givingVerb}
             </button>
           </div>
         </div>
@@ -277,24 +261,25 @@ function GiveSheet({
             onChange={(e) => setMessage(e.target.value)}
             maxLength={60}
             placeholder="Add a message (optional)"
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-cream placeholder:text-cream-faint focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-[13px] placeholder:text-ink-faint focus:outline-none"
           />
-          <label className="flex cursor-pointer items-center gap-2 text-[12px] text-cream-mute">
+          <label className="flex cursor-pointer items-center gap-2 text-[12px] text-ink-mute">
             <input
               type="checkbox"
               aria-label="Give anonymously — counted in the total, name kept off the board"
               checked={anonymous}
               onChange={(e) => setAnonymous(e.target.checked)}
-              className="h-3.5 w-3.5 accent-[var(--gold)]"
+              className="h-4 w-4 accent-[var(--accent)]"
             />
             Anonymous
           </label>
         </div>
 
-        <div className="border-t border-rule px-5 py-2.5">
-          <p className="money text-[11px] leading-relaxed text-cream-faint">
-            <span className="text-cream-mute">
-              {recipientNoun} {formatMoney(celebrantReceives(amount, currency), currency)} in full
+        <div className="border-t-2 border-ink bg-paper-2 px-5 py-3">
+          <p className="money text-[11.5px] leading-relaxed text-ink-mute">
+            <span className="font-bold text-ink">
+              {pledgeBased ? "They receive" : "Recipient receives"}{" "}
+              {formatMoney(celebrantReceives(amount, currency), currency)} in full
             </span>
             {" · "}
             You pay {formatUsd(giverPaysUsd(amount))} (incl. {formatUsd(feeUsd(amount))} fee,{" "}

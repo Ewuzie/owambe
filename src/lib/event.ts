@@ -255,6 +255,13 @@ export type OwambeEvent = {
   hashtag: string;
   /** The host's chosen fabric or colour for the day. */
   clothName: string;
+  /**
+   * The aso-ebi, as an actual colour. This is the ONE accent the whole
+   * product wears for this celebration, so no two events look alike.
+   * Every value here is checked to at least 4.5:1 against white.
+   */
+  accent: string;
+  accentDeep: string;
   status: EventStatus;
   /** Minutes from now: negative means it started that long ago. */
   startsInMinutes: number;
@@ -274,6 +281,10 @@ export const EVENTS: OwambeEvent[] = [
     city: "Lagos",
     hashtag: "#AdeOla2026",
     clothName: "Coral & Gold",
+    /* #dc3b1e measured 4.48:1 against white body text, just under the 4.5
+       minimum. Darkened to 4.81:1 so the invitation header passes. */
+    accent: "#d4371c",
+    accentDeep: "#a72a12",
     status: "live",
     startsInMinutes: -95,
     seedRaisedUsd: 2100,
@@ -289,6 +300,8 @@ export const EVENTS: OwambeEvent[] = [
     city: "Nairobi",
     hashtag: "#HarambeeForWanjiku",
     clothName: "Green & White",
+    accent: "#0f7b4f",
+    accentDeep: "#0a5636",
     status: "live",
     startsInMinutes: -40,
     seedRaisedUsd: 1340,
@@ -304,6 +317,8 @@ export const EVENTS: OwambeEvent[] = [
     city: "Accra",
     hashtag: "#NanaYawMensah",
     clothName: "Black & Red",
+    accent: "#b4141e",
+    accentDeep: "#7d0d15",
     status: "upcoming",
     startsInMinutes: 156,
     seedRaisedUsd: 890,
@@ -319,6 +334,8 @@ export const EVENTS: OwambeEvent[] = [
     city: "Johannesburg",
     hashtag: "#MasakhaneStokvel",
     clothName: "Blue & Ochre",
+    accent: "#14549e",
+    accentDeep: "#0e3c73",
     status: "upcoming",
     startsInMinutes: 1310,
     seedRaisedUsd: 640,
@@ -334,6 +351,8 @@ export const EVENTS: OwambeEvent[] = [
     city: "Lagos",
     hashtag: "#BabyChiamaka",
     clothName: "White & Silver",
+    accent: "#0e7c86",
+    accentDeep: "#09585f",
     status: "ended",
     startsInMinutes: -4300,
     seedRaisedUsd: 1180,

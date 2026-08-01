@@ -10,13 +10,14 @@ import {
   startsInLabel,
   toLocal,
 } from "@/lib/event";
+import { AccentScope } from "@/components/AccentScope";
 
 /*
-  The Ìwé Ìpè — the invitation. One per celebration, the most shared URL
-  in the product, and the thing a WhatsApp link preview shows.
+  The invitation. One per celebration, the most shared URL in the product.
 
-  It is an engraved card: rules instead of boxes, the honouree set large
-  in the display face, and the running total in mono underneath.
+  The whole top of the page is a solid block of the celebration's cloth
+  colour with the names set as large as they will go — an invitation card
+  that fills the screen rather than a form.
 */
 
 export function Invitation({ event }: { event: OwambeEvent }) {
@@ -25,143 +26,117 @@ export function Invitation({ event }: { event: OwambeEvent }) {
   const { ceremony } = event;
   const isEnded = event.status === "ended";
 
-  /* The total drifts upward while the room is live, so the card feels awake. */
   const [raisedUsd, setRaisedUsd] = useState(event.seedRaisedUsd);
   useEffect(() => {
     if (event.status !== "live") return;
-    const t = setInterval(
-      () => setRaisedUsd((r) => r + Math.round(1 + Math.random() * 40)),
-      4200,
-    );
+    const t = setInterval(() => setRaisedUsd((r) => r + Math.round(1 + Math.random() * 40)), 4200);
     return () => clearInterval(t);
   }, [event.status]);
 
   return (
-    <div className="min-h-dvh bg-ink-deep text-cream">
-      <header className="border-b border-rule bg-ink">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">
-          <Link href="/" className="font-display text-[16px] tracking-wide text-cream">
-            Owambe
-          </Link>
-          <span className="microlabel">{country.name}</span>
+    <AccentScope event={event} className="min-h-dvh bg-paper text-ink">
+      {/* The card: a full block of the cloth colour */}
+      <header className="bg-accent text-on-accent">
+        <div className="mx-auto max-w-5xl px-5 pb-16 pt-6 sm:px-8">
+          <div className="flex items-baseline justify-between">
+            <Link href="/" className="display text-[17px]">
+              Owambe
+            </Link>
+            <span className="microlabel !text-on-accent/80">{country.name}</span>
+          </div>
+
+          <div className="mt-14 flex items-center gap-2.5">
+            <span
+              className={`marker ${event.status === "live" ? "live-pulse bg-on-accent" : "bg-on-accent/70"}`}
+              aria-hidden="true"
+            />
+            <span className="microlabel !text-on-accent">{startsInLabel(event)}</span>
+          </div>
+
+          <p className="microlabel mt-8 !text-on-accent/80">You are invited to</p>
+          <h1 className="display mt-3 text-[clamp(38px,9.5vw,116px)]">{event.title}</h1>
+          <p className="mt-6 text-[15px] text-on-accent/90">{event.honouree}</p>
+
+          <div className="mt-12 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <Link
+              href={isEnded ? `/e/${event.id}/wall` : `/e/${event.id}/hall`}
+              className="display cursor-pointer bg-paper px-9 py-5 text-center text-[18px] text-ink transition-colors duration-150 hover:bg-paper-3"
+            >
+              {isEnded ? "See the wall" : `Enter and ${ceremony.givingVerb.toLowerCase()}`}
+            </Link>
+            <Link
+              href={`/e/${event.id}/wall`}
+              className="microlabel cursor-pointer border-2 border-on-accent px-7 py-5 text-center !text-on-accent transition-colors duration-150 hover:bg-on-accent hover:!text-accent"
+            >
+              Who has given
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-5 pb-24">
-        {/* The card */}
-        <section className="border-b border-rule-strong py-12 text-center">
-          <div className="flex items-center justify-center gap-2">
-            <span
-              className={`marker ${
-                event.status === "live"
-                  ? "live-pulse bg-live"
-                  : event.status === "upcoming"
-                    ? "bg-aso"
-                    : "bg-cream-faint"
-              }`}
-              aria-hidden="true"
-            />
-            <span className="microlabel">{startsInLabel(event)}</span>
+      <main className="mx-auto max-w-5xl px-5 pb-24 sm:px-8">
+        {/* Running total, set enormous */}
+        <section className="border-b-2 border-ink py-14">
+          <span className="microlabel">{ceremony.totalLabel}</span>
+          <div className="money mt-3 text-[clamp(40px,12vw,140px)] font-bold leading-[0.85] tracking-tighter">
+            {formatMoney(toLocal(raisedUsd, currency), currency)}
           </div>
+          <p className="mt-5 text-[13px] text-ink-mute">
+            from {event.guestCount} people, at home and abroad. Whatever you give lands
+            in full — the fee is added on top of what you pay, never taken out of what{" "}
+            {event.honouree} receives.
+          </p>
+        </section>
 
-          <div className="microlabel mt-8">You are invited to</div>
-          <h1 className="mt-3 font-display text-[clamp(28px,5.5vw,50px)] leading-[1.08] text-cream">
-            {event.title}
-          </h1>
-          <p className="mt-4 text-[13px] text-cream-mute">{event.honouree}</p>
-
-          <div className="mx-auto mt-8 max-w-md border-y border-rule py-5">
-            <dl className="grid grid-cols-2 gap-y-4 text-left">
-              <Detail label="Ceremony" value={ceremony.label} />
-              <Detail label="Hosted by" value={event.hostName} />
-              <Detail label="Venue" value={event.venue} />
-              <Detail label="City" value={`${event.city}, ${country.name}`} />
-              <Detail label="Cloth of the day" value={event.clothName} />
-              <Detail label="Hashtag" value={event.hashtag} />
-            </dl>
-          </div>
-
-          {/* Running total */}
-          <div className="mt-8">
-            <div className="microlabel">{ceremony.totalLabel}</div>
-            <div className="money mt-1 text-[34px] font-bold leading-none text-gold-bright">
-              {formatMoney(toLocal(raisedUsd, currency), currency)}
-            </div>
-            <div className="money mt-1.5 text-[11px] text-cream-faint">
-              from {event.guestCount} people, at home and abroad
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-9 flex flex-col items-center gap-3">
-            {isEnded ? (
-              <Link
-                href={`/e/${event.id}/wall`}
-                className="cursor-pointer border border-gold-deep bg-gold px-8 py-3 text-[14px] font-bold tracking-wide text-ink-well transition-colors duration-150 hover:bg-gold-bright"
-              >
-                SEE THE WALL
-              </Link>
-            ) : (
-              <Link
-                href={`/e/${event.id}/hall`}
-                className="cursor-pointer border border-gold-deep bg-gold px-8 py-3 text-[14px] font-bold tracking-wide text-ink-well transition-colors duration-150 hover:bg-gold-bright"
-              >
-                ENTER THE HALL
-              </Link>
-            )}
-            <Link
-              href={`/e/${event.id}/wall`}
-              className="microlabel cursor-pointer !text-cream-faint underline-offset-4 transition-colors duration-200 hover:!text-cream hover:underline"
-            >
-              {isEnded ? "Back to all celebrations" : "See who has given so far"}
-            </Link>
-          </div>
+        {/* Details */}
+        <section className="grid gap-0 border-b-2 border-ink sm:grid-cols-3">
+          <Detail label="Ceremony" value={ceremony.label} />
+          <Detail label="Hosted by" value={event.hostName} />
+          <Detail label="Cloth of the day" value={event.clothName} />
+          <Detail label="Venue" value={event.venue} />
+          <Detail label="City" value={`${event.city}, ${country.name}`} />
+          <Detail label="Hashtag" value={event.hashtag} />
         </section>
 
         {/* How giving works here */}
-        <section className="border-b border-rule py-8">
-          <h2 className="font-display text-[18px] text-cream">
-            How {ceremony.givingNoun} work at {ceremony.label.toLowerCase()}
+        <section className="border-b-2 border-ink py-14">
+          <h2 className="display text-[clamp(24px,4vw,44px)]">
+            How it works
+            <br />
+            <span className="text-accent">at this one</span>
           </h2>
-          <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-cream-mute">
+          <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-ink-mute">
             {ceremony.blurb}
-          </p>
-          <p className="mt-3 max-w-xl text-[12px] leading-relaxed text-cream-faint">
-            Whatever you give lands in full. The platform fee is added on top of what
-            you pay, never taken out of what {event.honouree} receives, and the rate
-            is shown and locked before you confirm.
           </p>
         </section>
 
         {/* Programme */}
-        <section className="py-8">
-          <h2 className="font-display text-[18px] text-cream">Programme of the day</h2>
-          <ol className="mt-3">
+        <section className="py-14">
+          <h2 className="display text-[clamp(24px,4vw,44px)]">Programme</h2>
+          <ol className="mt-6 border-t-2 border-ink">
             {ceremony.programme.map((item, i) => (
-              <li key={item.label} className="ledger-row flex items-baseline gap-3 py-2.5">
-                <span className="money w-5 flex-none text-[11px] text-cream-faint">
+              <li key={item.label} className="ledger-row flex items-baseline gap-5 py-4">
+                <span className="money w-8 flex-none text-[13px] text-accent">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <span className="flex-1 text-[13px] text-cream">{item.label}</span>
+                <span className="flex-1 text-[15px] font-medium">{item.label}</span>
                 {item.local && (
-                  <span className="flex-none text-[11px] italic text-cream-faint">
-                    {item.local}
-                  </span>
+                  <span className="flex-none text-[12px] italic text-ink-faint">{item.local}</span>
                 )}
               </li>
             ))}
           </ol>
         </section>
       </main>
-    </div>
+    </AccentScope>
   );
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-1">
+    <div className="border-b border-rule px-1 py-6 sm:border-b-0 sm:border-r sm:px-5 sm:last:border-r-0">
       <dt className="microlabel">{label}</dt>
-      <dd className="mt-0.5 text-[12.5px] leading-snug text-cream">{value}</dd>
+      <dd className="mt-1.5 text-[14px] font-medium leading-snug">{value}</dd>
     </div>
   );
 }

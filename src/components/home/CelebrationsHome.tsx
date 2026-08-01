@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { CSSProperties, useState } from "react";
 import {
   COUNTRIES,
   CountryCode,
@@ -14,8 +14,8 @@ import {
 } from "@/lib/event";
 
 /*
-  The front door. Celebrations across the continent, each with its own
-  ceremony and its own way of moving money.
+  The front door. White ground, type doing the shouting, and each
+  celebration wearing its own cloth colour.
 */
 
 const FILTERS: { key: CountryCode | "all"; label: string }[] = [
@@ -28,28 +28,34 @@ const FILTERS: { key: CountryCode | "all"; label: string }[] = [
 
 export function CelebrationsHome() {
   const [filter, setFilter] = useState<CountryCode | "all">("all");
-  const shown =
-    filter === "all" ? EVENTS : EVENTS.filter((e) => e.ceremony.country === filter);
+  const shown = filter === "all" ? EVENTS : EVENTS.filter((e) => e.ceremony.country === filter);
 
   const live = shown.filter((e) => e.status === "live");
   const upcoming = shown.filter((e) => e.status === "upcoming");
   const ended = shown.filter((e) => e.status === "ended");
 
   return (
-    <div className="min-h-dvh bg-ink-deep text-cream">
+    <div className="min-h-dvh bg-paper text-ink">
       {/* Masthead */}
-      <header className="border-b border-rule-strong bg-ink">
-        <div className="mx-auto max-w-5xl px-5 py-10">
-          <div className="microlabel">The money layer for African celebrations</div>
-          <h1 className="mt-3 font-display text-[clamp(30px,5vw,52px)] leading-[1.05] text-cream">
-            Be there, and be seen,
+      <header className="border-b-2 border-ink">
+        <div className="mx-auto max-w-6xl px-5 pb-14 pt-10 sm:px-8">
+          <div className="flex items-baseline justify-between">
+            <span className="display text-[19px]">Owambe</span>
+            <span className="microlabel">Africa</span>
+          </div>
+
+          <h1 className="display mt-10 text-[clamp(42px,11vw,132px)]">
+            Be there.
             <br />
-            from wherever you are.
+            Be seen.
+            <br />
+            <span className="text-accent">Give big.</span>
           </h1>
-          <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-cream-mute">
-            Every culture on this continent has a way of putting money into a moment
-            of joy or grief in front of everybody. Owambe carries that act across
-            the distance, and the money lands in a local bank account the same night.
+
+          <p className="mt-8 max-w-lg text-[15px] leading-relaxed text-ink-mute">
+            Every culture on this continent has a way of putting money into a moment,
+            in front of everybody. Owambe carries that across the distance, and it
+            lands in a local account the same night.
           </p>
         </div>
       </header>
@@ -57,7 +63,7 @@ export function CelebrationsHome() {
       {/* Country filter */}
       <nav
         aria-label="Filter by country"
-        className="sticky top-0 z-10 flex overflow-x-auto border-b border-rule bg-ink-deep/95 backdrop-blur"
+        className="sticky top-0 z-10 flex overflow-x-auto border-b-2 border-ink bg-paper"
       >
         {FILTERS.map((f) => {
           const active = filter === f.key;
@@ -66,8 +72,8 @@ export function CelebrationsHome() {
               key={f.key}
               onClick={() => setFilter(f.key)}
               aria-pressed={active}
-              className={`microlabel flex-none cursor-pointer border-b-2 border-r border-r-rule px-5 py-4 transition-colors duration-200 ${
-                active ? "border-b-gold !text-cream" : "border-b-transparent !text-cream-faint hover:!text-cream-mute"
+              className={`microlabel flex-none cursor-pointer border-r border-rule px-6 py-4 transition-colors duration-150 ${
+                active ? "bg-ink !text-paper" : "!text-ink-faint hover:bg-paper-2 hover:!text-ink"
               }`}
             >
               {f.label}
@@ -76,30 +82,26 @@ export function CelebrationsHome() {
         })}
       </nav>
 
-      <main className="mx-auto max-w-5xl px-5 pb-20">
+      <main className="mx-auto max-w-6xl px-5 pb-24 sm:px-8">
         <Section title="Happening now" count={live.length}>
           {live.map((e) => (
             <EventRow key={e.id} event={e} />
           ))}
         </Section>
-
         <Section title="Coming up" count={upcoming.length}>
           {upcoming.map((e) => (
             <EventRow key={e.id} event={e} />
           ))}
         </Section>
-
-        {ended.length > 0 && (
-          <Section title="Already celebrated" count={ended.length}>
-            {ended.map((e) => (
-              <EventRow key={e.id} event={e} />
-            ))}
-          </Section>
-        )}
+        <Section title="Already celebrated" count={ended.length}>
+          {ended.map((e) => (
+            <EventRow key={e.id} event={e} />
+          ))}
+        </Section>
 
         {shown.length === 0 && (
-          <p className="py-16 text-center text-[13px] text-cream-faint">
-            No celebrations in {FILTERS.find((f) => f.key === filter)?.label} yet.
+          <p className="py-24 text-center text-[14px] text-ink-faint">
+            Nothing in {FILTERS.find((f) => f.key === filter)?.label} yet.
           </p>
         )}
       </main>
@@ -118,14 +120,12 @@ function Section({
 }) {
   if (count === 0) return null;
   return (
-    <section className="pt-10">
-      <div className="flex items-baseline justify-between border-b border-rule-strong pb-2">
-        <h2 className="font-display text-[19px] text-cream">{title}</h2>
-        <span className="microlabel">
-          {count} {count === 1 ? "celebration" : "celebrations"}
-        </span>
+    <section className="pt-14">
+      <div className="flex items-baseline justify-between">
+        <h2 className="display text-[clamp(22px,3.4vw,34px)]">{title}</h2>
+        <span className="microlabel">{count}</span>
       </div>
-      <div>{children}</div>
+      <div className="mt-5 border-t-2 border-ink">{children}</div>
     </section>
   );
 }
@@ -134,49 +134,51 @@ function EventRow({ event }: { event: OwambeEvent }) {
   const currency = eventCurrency(event);
   const country = COUNTRIES[event.ceremony.country];
   const raised = formatMoney(toLocal(event.seedRaisedUsd, currency), currency);
+  const style = { "--accent": event.accent } as CSSProperties;
 
   return (
     <Link
       href={`/e/${event.id}`}
-      className="ledger-row group flex cursor-pointer flex-col gap-3 py-5 transition-colors duration-200 hover:bg-ink sm:flex-row sm:items-center sm:gap-5"
+      style={style}
+      className="group ledger-row relative flex cursor-pointer flex-col gap-4 py-7 transition-colors duration-150 hover:bg-paper-2 sm:flex-row sm:items-center sm:gap-8"
     >
-      {/* Status marker */}
-      <div className="flex flex-none items-center gap-2 sm:w-[104px]">
+      {/* The cloth of the day, as a block of colour */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 w-0 bg-accent transition-all duration-200 group-hover:w-2"
+      />
+
+      <div className="flex flex-none items-center gap-2.5 sm:w-[112px]">
         <span
           className={`marker ${
             event.status === "live"
               ? "live-pulse bg-live"
               : event.status === "upcoming"
-                ? "bg-aso"
-                : "bg-cream-faint"
+                ? "bg-accent"
+                : "bg-ink-faint"
           }`}
           aria-hidden="true"
         />
         <span className="microlabel">
-          {event.status === "live" ? "Live" : event.status === "upcoming" ? "Upcoming" : "Ended"}
+          {event.status === "live" ? "Live" : event.status === "upcoming" ? "Soon" : "Ended"}
         </span>
       </div>
 
-      {/* Title and detail */}
       <div className="min-w-0 flex-1">
-        <h3 className="font-display text-[17px] leading-snug text-cream group-hover:text-gold-bright">
+        <h3 className="display text-[clamp(20px,2.6vw,30px)] leading-[1] group-hover:text-accent">
           {event.title}
         </h3>
-        <p className="mt-1 text-[12px] text-cream-mute">
-          {event.ceremony.label} · {event.city}, {country.name}
+        <p className="mt-2.5 text-[12px] font-semibold uppercase tracking-wider text-accent">
+          {event.ceremony.givingVerb} · {event.ceremony.label}
         </p>
-        <p className="mt-1.5 max-w-lg text-[12px] leading-snug text-cream-faint">
-          {event.ceremony.blurb}
+        <p className="mt-1 text-[12.5px] text-ink-faint">
+          {event.city}, {country.name} · {event.guestCount} present
         </p>
       </div>
 
-      {/* Money */}
-      <div className="flex flex-none items-baseline gap-4 sm:w-[190px] sm:flex-col sm:items-end sm:gap-0.5">
-        <span className="money text-[15px] font-bold text-gold-bright">{raised}</span>
-        <span className="microlabel">
-          {event.ceremony.givingNoun} · {event.guestCount} present
-        </span>
-        <span className="microlabel !text-cream-faint">{startsInLabel(event)}</span>
+      <div className="flex flex-none items-baseline gap-4 sm:w-[200px] sm:flex-col sm:items-end sm:gap-1">
+        <span className="money text-[clamp(18px,2.2vw,26px)] font-bold leading-none">{raised}</span>
+        <span className="microlabel !text-ink-faint">{startsInLabel(event)}</span>
       </div>
     </Link>
   );

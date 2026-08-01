@@ -1,206 +1,177 @@
 @import "tailwindcss";
 
 /*
-  OWAMBE TOKEN LAYER — Aso-Ebi Ceremonial (Section 9.4 fallback, binding)
+  OWAMBE TOKEN LAYER — "Loud Minimal"
 
-  Ground: deep adire indigo. Light surface: warm paper cream.
-  Antique gold is reserved EXCLUSIVELY for money and the current Big Spender.
-  The party's aso-ebi colour (--aso-ebi) is set per party and tints
-  party-specific ceremony accents — never the money gold.
+  Redesign, 2026-08-01. The previous direction (dark indigo, thin gold,
+  engraved serif) read as sombre and bank-like. A celebration should not
+  look like a legal document.
+
+  The rules now:
+    - White ground, near-black text. Nothing dark, nothing dim.
+    - ONE colour per celebration, used loudly and everywhere.
+    - That colour is the aso-ebi — the cloth of the day. Every event
+      recolours the whole product, so no two celebrations look alike.
+      The single-accent rule and the tradition are the same rule.
+    - Type is oversized and heavy. Headlines shout.
+    - No shadows, no gradients, no rounded corners. Flat blocks and
+      hairlines only.
 
   Every component consumes these tokens. No raw hex in components.
 */
 
 :root {
-  /* -- colour: ground & surfaces (adire indigo family) -- */
-  --ink-deep: #0e1428; /* page ground */
-  --ink: #131a33; /* room surface */
-  --ink-raised: #1a2242; /* rails, sheets */
-  --ink-well: #0a0f20; /* video well, canvas backdrop */
+  /* -- ground and surfaces -- */
+  --paper: #ffffff;
+  --paper-2: #f4f2ee; /* recessed panels, rails */
+  --paper-3: #e8e5df; /* pressed / active */
 
-  /* -- colour: paper (light surfaces, invitation card) -- */
-  --paper: #f4ecdd; /* warm cream */
-  --paper-shade: #e7dcc6;
+  /* -- text -- */
+  --ink: #0b0b0c;
+  --ink-mute: #55555d;
+  --ink-faint: #8b8b93;
+  --on-accent: #ffffff;
 
-  /* -- colour: text on ink -- */
-  --cream: #efe7d6; /* primary text on indigo */
-  --cream-mute: #a9abbe; /* secondary/meta text on indigo */
-  --cream-faint: #6b7089; /* disabled, timestamps */
+  /* -- the one colour. Overridden per celebration by --accent. -- */
+  /* Default cloth. Checked at 4.81:1 against white text. */
+  --accent: #d4371c;
+  --accent-deep: #a72a12;
 
-  /* -- colour: text on paper -- */
-  --ink-text: #1c2340;
-  --ink-text-mute: #565d78;
-
-  /* -- colour: money gold — money and Big Spender ONLY -- */
-  --gold: #c9a227;
-  --gold-bright: #e3bf45; /* ticking totals, note highlights */
-  --gold-deep: #8f7118; /* borders on gold elements */
-
-  /* -- colour: per-party aso-ebi (host-set; demo party: coral) -- */
-  --aso-ebi: #d96c5f;
-  --aso-ebi-deep: #a84a40;
-  /* The two family sides. Named by position, not by role, because not every
-     ceremony has a bride and a groom — the ceremony config supplies the labels. */
-  --side-a: #d96c5f;
-  --side-b: #4f8a8b;
-
-  /* -- colour: hairlines -- */
-  --rule: rgba(239, 231, 214, 0.14); /* hairline on ink */
-  --rule-strong: rgba(239, 231, 214, 0.32);
-  --rule-paper: rgba(28, 35, 64, 0.18); /* hairline on paper */
+  /* -- hairlines -- */
+  --rule: rgba(11, 11, 12, 0.14);
+  --rule-strong: rgba(11, 11, 12, 0.32);
+  --rule-on-accent: rgba(255, 255, 255, 0.34);
 
   /* -- status -- */
-  --live: #c94f4f;
-  --ok: #7a9b6d;
+  --live: #d92b2b;
 
-  /* -- shape: sharp, engraved -- */
+  /* -- shape: flat and square -- */
   --radius-0: 0px;
-  --radius-1: 2px;
-
-  /* -- borders -- */
   --border-hair: 1px;
 
-  /* -- motion: ceremonial room, physical throw -- */
-  --t-fast: 120ms; /* throw feedback, presses */
-  --t-quick: 200ms; /* hovers, tabs */
-  --t-room: 600ms; /* room-wide moments */
-  --t-ceremony: 1200ms; /* programme advance, rain enter */
+  /* -- motion -- */
+  --t-fast: 120ms;
+  --t-quick: 200ms;
+  --t-room: 600ms;
+  --t-ceremony: 1000ms;
   --ease-snap: cubic-bezier(0.2, 0.9, 0.3, 1);
   --ease-ceremony: cubic-bezier(0.6, 0, 0.2, 1);
 }
 
 @theme inline {
-  /* colours */
-  --color-ink-deep: var(--ink-deep);
-  --color-ink: var(--ink);
-  --color-ink-raised: var(--ink-raised);
-  --color-ink-well: var(--ink-well);
   --color-paper: var(--paper);
-  --color-paper-shade: var(--paper-shade);
-  --color-cream: var(--cream);
-  --color-cream-mute: var(--cream-mute);
-  --color-cream-faint: var(--cream-faint);
-  --color-ink-text: var(--ink-text);
-  --color-ink-text-mute: var(--ink-text-mute);
-  --color-gold: var(--gold);
-  --color-gold-bright: var(--gold-bright);
-  --color-gold-deep: var(--gold-deep);
-  --color-aso: var(--aso-ebi);
-  --color-aso-deep: var(--aso-ebi-deep);
-  --color-side-a: var(--side-a);
-  --color-side-b: var(--side-b);
+  --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
+  --color-ink: var(--ink);
+  --color-ink-mute: var(--ink-mute);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-on-accent: var(--on-accent);
   --color-rule: var(--rule);
   --color-rule-strong: var(--rule-strong);
-  --color-rule-paper: var(--rule-paper);
+  --color-rule-on-accent: var(--rule-on-accent);
   --color-live: var(--live);
-  --color-ok: var(--ok);
 
-  /* type */
-  --font-display: var(--font-libre-bodoni), "Bodoni MT", Didot, serif;
+  --font-display: var(--font-lexend-mega), "Arial Black", sans-serif;
   --font-body: var(--font-public-sans), system-ui, sans-serif;
   --font-money: var(--font-space-mono), "Courier New", monospace;
 
-  /* shape */
   --radius-none: var(--radius-0);
-  --radius-hair: var(--radius-1);
 }
 
-/* base */
 html {
-  background: var(--ink-deep);
+  background: var(--paper);
 }
 
 body {
-  background: var(--ink-deep);
-  color: var(--cream);
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.5;
 }
 
 ::selection {
-  background: var(--aso-ebi);
-  color: var(--paper);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
-/* micro-label: uppercase, letterspaced, the engraved-invitation section label */
+/* Oversized statement type. This is the loudest thing in the product. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+/* micro-label: uppercase, letterspaced, the small print */
 .microlabel {
   font-family: var(--font-body);
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--cream-mute);
+  color: var(--ink-mute);
 }
 
-/* money figures: mono, tabular, right-aligned — totals tick, never jump */
+/* money: mono, tabular, so totals tick rather than jump */
 .money {
   font-family: var(--font-money);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
-/* ledger row: hairline-separated, the record of the night */
+/* ledger row: hairline-separated record */
 .ledger-row {
   border-bottom: var(--border-hair) solid var(--rule);
 }
 
-/* left-rule accent, used instead of cards */
-.left-rule {
-  border-left: 2px solid var(--rule-strong);
-}
-.left-rule-gold {
-  border-left: 2px solid var(--gold);
-}
-.left-rule-aso {
-  border-left: 2px solid var(--aso-ebi);
-}
-
-/* square status marker (no pills) */
+/* square status marker, never a pill */
 .marker {
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   flex: none;
 }
 
-/* focus: visible, engraved */
 :focus-visible {
-  outline: 2px solid var(--gold-bright);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* scrollbars on rails: thin, quiet */
 .rail-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--rule-strong) transparent;
 }
 
-/* live pulse */
+/* ---------------------------------------------------------- animation -- */
+
 @keyframes live-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.35;
+    opacity: 0.3;
   }
 }
 .live-pulse {
-  animation: live-pulse 1.6s ease-in-out infinite;
+  animation: live-pulse 1.4s ease-in-out infinite;
 }
 
-/* rain mode: room-wide dim + gold cast */
 @keyframes rain-enter {
   from {
     opacity: 0;
+    transform: scale(0.94);
   }
   to {
     opacity: 1;
+    transform: scale(1);
   }
 }
 
-/* emotes drift up over the floor */
 @keyframes emote-float {
   from {
     opacity: 0;
@@ -214,14 +185,13 @@ body {
   }
   to {
     opacity: 0;
-    transform: translateY(-56px);
+    transform: translateY(-60px);
   }
 }
 .emote-float {
   animation: emote-float 2.6s var(--ease-ceremony) forwards;
 }
 
-/* MC shout-out banner rises from the base of the video */
 @keyframes shoutout-enter {
   from {
     opacity: 0;

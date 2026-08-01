@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OwambeEvent } from "@/lib/event";
 import { YOU_ID, emotesFor } from "@/lib/hall";
+import { AccentScope } from "@/components/AccentScope";
 import { ChatRail } from "./ChatRail";
 import { LiveFloor } from "./LiveFloor";
 import { MoneyRail } from "./MoneyRail";
@@ -12,12 +13,10 @@ import { SprayDeck } from "./SprayDeck";
 import { GiftVisual, surgeLabel, throwsNotes, useHallEngine } from "./useHallEngine";
 
 /*
-  The room — the product. Live video centre of gravity, the note canvas
-  layered over it (spraying only), chat and money rails beside it.
-
-  Everything visible here is driven by the event's ceremony, so the same
-  component runs a Lagos wedding, a Nairobi harambee, an Accra funeral
-  and a Johannesburg stokvel.
+  The room. The stage is a solid block of the celebration's cloth colour,
+  the rails are white, and everything is driven by the ceremony — so the
+  same component runs a Lagos wedding, a Nairobi harambee, an Accra
+  funeral and a Johannesburg stokvel.
 */
 
 export function Hall({ event }: { event: OwambeEvent }) {
@@ -42,27 +41,27 @@ export function Hall({ event }: { event: OwambeEvent }) {
   }, [state.rainActive, notes]);
 
   return (
-    <div className="flex h-dvh flex-col bg-ink-deep text-cream">
-      <header className="flex items-center justify-between border-b border-rule-strong bg-ink px-4 py-2.5">
-        <div className="flex items-baseline gap-3">
-          <Link href="/" className="font-display text-[17px] tracking-wide text-cream">
+    <AccentScope event={event} className="flex h-dvh flex-col bg-paper text-ink">
+      <header className="flex items-center justify-between border-b-2 border-ink px-4 py-3">
+        <div className="flex items-baseline gap-4">
+          <Link href="/" className="display text-[16px]">
             Owambe
           </Link>
-          <span className="microlabel hidden sm:inline">{event.title}</span>
+          <span className="microlabel hidden truncate sm:inline">{event.title}</span>
         </div>
         <div className="flex items-center gap-4">
           <span className="microlabel hidden md:inline">{event.hashtag}</span>
           <Link
             href={`/e/${event.id}/wall`}
-            className="microlabel cursor-pointer border border-rule-strong px-3 py-1.5 !text-cream transition-colors duration-200 hover:border-cream-mute"
+            className="microlabel cursor-pointer border-2 border-ink px-3 py-2 transition-colors duration-150 hover:bg-ink hover:!text-paper"
           >
             The wall
           </Link>
         </div>
       </header>
 
-      <div className="relative grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] lg:grid-cols-[260px_1fr_290px] lg:grid-rows-1">
-        <div className="hidden min-h-0 border-r border-rule lg:block">
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] lg:grid-cols-[268px_1fr_296px] lg:grid-rows-1">
+        <div className="hidden min-h-0 border-r-2 border-ink lg:block">
           <MoneyRail
             event={event}
             guests={state.guests}
@@ -84,22 +83,21 @@ export function Hall({ event }: { event: OwambeEvent }) {
           {notes && <SprayCanvas ref={canvasRef} />}
 
           {state.rainActive && (
-            <div className="pointer-events-none absolute inset-x-0 top-[38%] z-30 text-center">
+            <div className="pointer-events-none absolute inset-x-0 top-[34%] z-30 text-center">
               <div
-                className="inline-block border-y-2 border-gold bg-ink-well/85 px-8 py-3"
+                className="inline-block bg-ink px-9 py-5 text-paper"
                 style={{ animation: "rain-enter var(--t-room) var(--ease-ceremony)" }}
               >
-                <span className="font-display text-[26px] tracking-wide text-gold-bright">
-                  {surge.title}
-                </span>
-                <div className="microlabel mt-1 !text-cream">{surge.sub}</div>
+                <span className="display text-[clamp(22px,4vw,40px)]">{surge.title}</span>
+                <div className="microlabel mt-2 !text-paper/70">{surge.sub}</div>
               </div>
             </div>
           )}
 
-          <div className="absolute inset-x-0 bottom-0 z-20 flex items-stretch border-t border-rule-strong bg-ink/95">
+          {/* Gestures + give */}
+          <div className="absolute inset-x-0 bottom-0 z-20 flex items-stretch border-t-2 border-ink bg-paper">
             <div
-              className="flex flex-1 items-center gap-0 overflow-x-auto"
+              className="flex flex-1 items-center overflow-x-auto"
               role="toolbar"
               aria-label="Gestures"
             >
@@ -107,7 +105,7 @@ export function Hall({ event }: { event: OwambeEvent }) {
                 <button
                   key={e.kind}
                   onClick={() => sendEmote(e.kind, e.label)}
-                  className="microlabel flex-none cursor-pointer border-r border-rule px-3 py-3.5 !text-cream-mute transition-colors duration-150 hover:bg-ink-raised hover:!text-cream"
+                  className="microlabel flex-none cursor-pointer border-r border-rule px-4 py-4 transition-colors duration-150 hover:bg-paper-2 hover:!text-ink"
                 >
                   {e.label}
                 </button>
@@ -115,9 +113,9 @@ export function Hall({ event }: { event: OwambeEvent }) {
             </div>
             <button
               onClick={() => setDeckOpen(true)}
-              className="flex-none cursor-pointer border-l-2 border-gold-deep bg-gold px-6 py-3.5 text-[14px] font-bold tracking-wide text-ink-well transition-colors duration-150 hover:bg-gold-bright"
+              className="display flex-none cursor-pointer bg-accent px-8 py-4 text-[16px] text-on-accent transition-colors duration-150 hover:bg-ink"
             >
-              {event.ceremony.givingVerb.toUpperCase()}
+              {event.ceremony.givingVerb}
             </button>
           </div>
 
@@ -129,20 +127,21 @@ export function Hall({ event }: { event: OwambeEvent }) {
           />
         </div>
 
-        <div className="hidden min-h-0 border-l border-rule lg:block">
+        <div className="hidden min-h-0 border-l-2 border-ink lg:block">
           <ChatRail event={event} chat={state.chat} guests={state.guests} onSend={sendChat} />
         </div>
 
-        <div className="flex min-h-0 flex-col border-t border-rule-strong lg:hidden">
-          <div role="tablist" aria-label="Rails" className="flex border-b border-rule bg-ink">
+        {/* Phone: one rail at a time */}
+        <div className="flex min-h-0 flex-col border-t-2 border-ink lg:hidden">
+          <div role="tablist" aria-label="Rails" className="flex border-b border-rule">
             {(["board", "chat"] as const).map((r) => (
               <button
                 key={r}
                 role="tab"
                 aria-selected={mobileRail === r}
                 onClick={() => setMobileRail(r)}
-                className={`microlabel flex-1 cursor-pointer border-b-2 py-3 transition-colors duration-200 ${
-                  mobileRail === r ? "border-gold !text-cream" : "border-transparent !text-cream-faint"
+                className={`microlabel flex-1 cursor-pointer py-3.5 transition-colors duration-150 ${
+                  mobileRail === r ? "bg-ink !text-paper" : "!text-ink-faint"
                 }`}
               >
                 {r === "board" ? event.ceremony.boardLabel : "Chat"}
@@ -163,6 +162,6 @@ export function Hall({ event }: { event: OwambeEvent }) {
           </div>
         </div>
       </div>
-    </div>
+    </AccentScope>
   );
 }

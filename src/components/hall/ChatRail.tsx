@@ -5,8 +5,8 @@ import { OwambeEvent } from "@/lib/event";
 import { ChatMessage, Guest, sideClasses } from "@/lib/hall";
 
 /*
-  Chat rail: table chat and hall chat as two tabs. Spray events are
-  injected into hall chat as ledger lines, never as toast popups.
+  Chat rail: room chat and table chat. Gift events are injected as ledger
+  lines, never as toast popups.
 */
 
 export function ChatRail({
@@ -45,19 +45,16 @@ export function ChatRail({
   };
 
   return (
-    <aside aria-label="Chat rail" className="flex h-full w-full flex-col bg-ink">
-      {/* Tabs */}
-      <div role="tablist" aria-label="Chat channels" className="flex border-b border-rule">
+    <aside aria-label="Chat rail" className="flex h-full w-full flex-col bg-paper">
+      <div role="tablist" aria-label="Chat channels" className="flex border-b-2 border-ink">
         {(["hall", "table"] as const).map((t) => (
           <button
             key={t}
             role="tab"
             aria-selected={tab === t}
             onClick={() => setTab(t)}
-            className={`microlabel flex-1 cursor-pointer border-b-2 px-3 py-3 text-center transition-colors duration-200 ${
-              tab === t
-                ? "border-aso text-cream"
-                : "border-transparent text-cream-faint hover:text-cream-mute"
+            className={`microlabel flex-1 cursor-pointer px-3 py-3.5 text-center transition-colors duration-150 ${
+              tab === t ? "bg-ink !text-paper" : "!text-ink-faint hover:bg-paper-2 hover:!text-ink"
             }`}
           >
             {t === "hall" ? "Room" : `Table ${you?.table ?? ""}`}
@@ -65,33 +62,27 @@ export function ChatRail({
         ))}
       </div>
 
-      {/* Messages */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto rail-scroll px-4 py-3"
-        aria-live="polite"
-      >
+      <div ref={scrollRef} className="flex-1 overflow-y-auto rail-scroll px-4 py-3" aria-live="polite">
         {visible.map((m) => (
           <ChatLine key={m.id} msg={m} guests={guests} event={event} />
         ))}
       </div>
 
-      {/* Composer */}
-      <form onSubmit={submit} className="flex border-t border-rule">
+      <form onSubmit={submit} className="flex border-t-2 border-ink">
         <label htmlFor="chat-input" className="sr-only">
-          Message the hall
+          Message the room
         </label>
         <input
           id="chat-input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Say something to the hall…"
-          className="min-w-0 flex-1 bg-transparent px-4 py-3 text-[13px] text-cream placeholder:text-cream-faint focus:outline-none"
+          placeholder="Say something…"
+          className="min-w-0 flex-1 bg-transparent px-4 py-3.5 text-[13px] placeholder:text-ink-faint focus:outline-none"
           maxLength={200}
         />
         <button
           type="submit"
-          className="microlabel cursor-pointer px-4 text-cream-mute transition-colors duration-200 hover:text-cream"
+          className="microlabel cursor-pointer bg-ink px-5 !text-paper transition-colors duration-150 hover:bg-accent"
         >
           Send
         </button>
@@ -110,32 +101,29 @@ function ChatLine({
   event: OwambeEvent;
 }) {
   if (msg.kind === "ledger") {
-    /* Spray events read as ledger lines: hairline, mono amount inline */
     return (
-      <div className="ledger-row left-rule-gold my-1 py-1.5 pl-2.5">
-        <span className="money text-[12px] leading-snug text-gold-bright">{msg.text}</span>
+      <div className="my-1.5 border-l-4 border-accent bg-paper-2 py-2 pl-3">
+        <span className="money text-[12px] font-bold leading-snug">{msg.text}</span>
       </div>
     );
   }
   if (msg.kind === "system") {
     return (
-      <div className="my-2 py-0.5">
-        <span className="microlabel !text-aso">{msg.text}</span>
+      <div className="my-2.5">
+        <span className="microlabel !text-accent">{msg.text}</span>
       </div>
     );
   }
   const guest = guests.find((g) => g.id === msg.guestId);
   const nameColour = guest?.isYou
-    ? "text-cream"
+    ? "text-ink"
     : guest
       ? sideClasses(event, guest.side).text
-      : "text-cream-mute";
+      : "text-ink-mute";
   return (
     <div className="py-1 text-[13px] leading-snug">
-      <span className={`mr-1.5 font-semibold ${nameColour}`}>
-        {guest?.name ?? "Guest"}
-      </span>
-      <span className="text-cream-mute">{msg.text}</span>
+      <span className={`mr-1.5 font-bold ${nameColour}`}>{guest?.name ?? "Guest"}</span>
+      <span className="text-ink-mute">{msg.text}</span>
     </div>
   );
 }

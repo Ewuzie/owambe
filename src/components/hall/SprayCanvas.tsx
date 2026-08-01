@@ -205,15 +205,17 @@ function drawNote(ctx: CanvasRenderingContext2D, n: Note) {
   ctx.save();
   ctx.translate(n.x, n.y);
   ctx.rotate(n.rot);
+  /* Notes fly over the accent-coloured stage, so they are paper white and
+     ink black — the two colours guaranteed to read against any cloth. */
   const colors =
     n.hue === "gold"
-      ? { fill: "#c9a227", edge: "#8f7118", ink: "#3b2f08" }
+      ? { fill: "#ffffff", edge: "#0b0b0c", ink: "#0b0b0c" }
       : n.hue === "cream"
-        ? { fill: "#efe7d6", edge: "#b7ad95", ink: "#4a4433" }
-        : { fill: "#d96c5f", edge: "#a84a40", ink: "#5b1f18" };
+        ? { fill: "#f4f2ee", edge: "#0b0b0c", ink: "#0b0b0c" }
+        : { fill: "#0b0b0c", edge: "#0b0b0c", ink: "#ffffff" };
   ctx.fillStyle = colors.fill;
   ctx.strokeStyle = colors.edge;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.5;
   ctx.globalAlpha = n.settled ? 0.92 : 1;
   ctx.fillRect(-n.w / 2, -n.h / 2, n.w, n.h);
   ctx.strokeRect(-n.w / 2, -n.h / 2, n.w, n.h);

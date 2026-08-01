@@ -5,11 +5,8 @@ import { OwambeEvent, eventCurrency, formatMoney, rateLine, toLocal } from "@/li
 import { Guest, sideClasses } from "@/lib/hall";
 
 /*
-  The money rail: live total, the board, the family meter. Gold is used
-  here and almost nowhere else — this rail is what gold is for.
-
-  Every label comes from the ceremony, so a Ghanaian funeral shows a
-  donation table rather than a leaderboard of spenders.
+  The money rail. The total is the biggest number on the page, because
+  the total is the point.
 */
 
 function useTickingTotal(target: number, format: (n: number) => string) {
@@ -72,7 +69,7 @@ export function MoneyRail({
   const totalRef = useTickingTotal(toLocal(totalUsd, currency), fmt);
 
   const board = [...guests].sort((a, b) => b.givenUsd - a.givenUsd).slice(0, 10);
-  const crownId = board[0]?.id;
+  const leadId = board[0]?.id;
   const { tierNames, sides, totalLabel, boardLabel, pledgeBased } = event.ceremony;
 
   const usdA = sides
@@ -86,47 +83,47 @@ export function MoneyRail({
   return (
     <aside
       aria-label="Money rail"
-      className="flex h-full w-full flex-col overflow-y-auto rail-scroll bg-ink"
+      className="flex h-full w-full flex-col overflow-y-auto rail-scroll bg-paper"
     >
-      {/* Live total */}
-      <div className="border-b border-rule px-4 pb-4 pt-4">
+      {/* The total */}
+      <div className="border-b-2 border-ink px-4 pb-5 pt-4">
         <div className="microlabel">{totalLabel}</div>
         <div
           ref={totalRef}
-          className="money mt-1 text-right text-[26px] font-bold leading-none text-gold-bright"
+          className="money mt-2 text-[clamp(26px,3.6vw,38px)] font-bold leading-[0.9] tracking-tighter"
           aria-live="off"
         >
           {fmt(toLocal(totalUsd, currency))}
         </div>
-        <div className="money mt-1 text-right text-[11px] text-cream-faint">
+        <div className="money mt-2 text-[10.5px] text-ink-faint">
           rate locked · {rateLine(currency)}
         </div>
         {pledgeBased && (
-          <div className="ledger-row mt-3 flex items-baseline justify-between border-b-0 border-t border-rule pt-2">
-            <span className="microlabel">Still outstanding</span>
-            <span className="money text-[12px] text-cream-mute">
+          <div className="mt-3 flex items-baseline justify-between border-t border-rule pt-2.5">
+            <span className="microlabel">Outstanding</span>
+            <span className="money text-[12px] font-bold text-accent">
               {fmt(toLocal(outstandingUsd, currency))}
             </span>
           </div>
         )}
       </div>
 
-      {/* Two-sided meter */}
+      {/* Two sides */}
       {sides && (
         <div className="border-b border-rule px-4 py-4">
           <div className="mb-2 flex items-baseline justify-between">
-            <span className="microlabel">{sides[0].label}</span>
-            <span className="microlabel">{sides[1].label}</span>
+            <span className="microlabel !text-accent">{sides[0].label}</span>
+            <span className="microlabel !text-ink">{sides[1].label}</span>
           </div>
           <div
-            className="flex h-[10px] w-full overflow-hidden border border-rule-strong"
+            className="flex h-3 w-full overflow-hidden"
             role="img"
             aria-label={`${sides[0].label} ${pctA} percent, ${sides[1].label} ${100 - pctA} percent`}
           >
-            <div className="h-full bg-side-a transition-all duration-700" style={{ width: `${pctA}%` }} />
-            <div className="h-full flex-1 bg-side-b transition-all duration-700" />
+            <div className="h-full bg-accent transition-all duration-700" style={{ width: `${pctA}%` }} />
+            <div className="h-full flex-1 bg-ink transition-all duration-700" />
           </div>
-          <div className="money mt-1.5 flex justify-between text-[11px] text-cream-mute">
+          <div className="money mt-2 flex justify-between text-[11px] text-ink-mute">
             <span>{fmt(toLocal(usdA, currency))}</span>
             <span>{fmt(toLocal(usdB, currency))}</span>
           </div>
@@ -135,48 +132,47 @@ export function MoneyRail({
 
       {/* The board */}
       <div className="flex-1 px-4 py-4">
-        <div className="mb-1 flex items-baseline justify-between">
-          <h2 className="font-display text-[15px] text-cream">{boardLabel}</h2>
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="display text-[15px]">{boardLabel}</h2>
           <span className="microlabel">Top 10</span>
         </div>
-        <ol className="mt-2">
+        <ol className="border-t-2 border-ink">
           {board.map((g, i) => {
-            const isCrown = g.id === crownId;
+            const isLead = g.id === leadId;
             const sc = sideClasses(event, g.side);
             return (
               <li
                 key={g.id}
-                className={`ledger-row flex items-center gap-2.5 py-2 ${
-                  isCrown ? "left-rule-gold pl-2.5" : "pl-[12px]"
+                className={`ledger-row flex items-center gap-2.5 py-2.5 ${
+                  isLead ? "bg-accent px-2 text-on-accent" : ""
                 }`}
               >
-                <span className="money w-4 flex-none text-[11px] text-cream-faint">{i + 1}</span>
                 <span
-                  className={`flex h-7 w-7 flex-none items-center justify-center border text-[11px] font-semibold ${
-                    isCrown
-                      ? "border-gold-deep bg-gold text-ink-well"
-                      : `border-rule-strong ${sc.bgSoft} text-cream`
+                  className={`money w-4 flex-none text-[11px] ${
+                    isLead ? "text-on-accent/80" : "text-ink-faint"
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <span
+                  className={`flex h-7 w-7 flex-none items-center justify-center text-[10px] font-bold ${
+                    isLead ? "bg-on-accent text-accent" : `${sc.bgFaint} text-ink`
                   }`}
                   aria-hidden="true"
                 >
                   {initials(g.name)}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block truncate text-[13px] ${isCrown ? "text-gold-bright" : "text-cream"}`}>
-                    {g.name}
-                    {isCrown && (
-                      <CrownIcon className="ml-1.5 inline-block h-3 w-3 align-baseline text-gold-bright" />
-                    )}
-                  </span>
-                  <span className="block truncate text-[10.5px] text-cream-faint">
+                  <span className="block truncate text-[13px] font-semibold">{g.name}</span>
+                  <span
+                    className={`block truncate text-[10px] ${
+                      isLead ? "text-on-accent/75" : "text-ink-faint"
+                    }`}
+                  >
                     {tierNames[g.tier]} · {g.city}
                   </span>
                 </span>
-                <span
-                  className={`money flex-none text-right text-[12px] ${
-                    isCrown ? "text-gold-bright" : "text-cream-mute"
-                  }`}
-                >
+                <span className="money flex-none text-right text-[12px] font-bold">
                   {fmt(toLocal(g.givenUsd, currency))}
                 </span>
               </li>
@@ -196,12 +192,4 @@ function initials(name: string): string {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-}
-
-function CrownIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-label="Leading giver">
-      <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-1.8 10H4.8L3 8z" />
-    </svg>
-  );
 }

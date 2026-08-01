@@ -264,21 +264,17 @@ export function openingLine(event: OwambeEvent): string {
   }
 }
 
-/** Tailwind class for a side's colour, by its position in the ceremony. */
+/**
+ * Classes for a side. With a single-accent design the two sides are told
+ * apart by weight rather than by hue: side A wears the cloth colour, side
+ * B wears ink. Ceremonies without sides get a neutral.
+ */
 export function sideClasses(event: OwambeEvent, sideKey: string) {
   const i = event.ceremony.sides?.findIndex((s) => s.key === sideKey) ?? -1;
   if (i < 0) {
-    return {
-      bg: "bg-cream-faint",
-      bgSoft: "bg-cream-faint/20",
-      bgFaint: "bg-cream-faint/15",
-      text: "text-cream-mute",
-    };
+    return { bg: "bg-ink-faint", bgSoft: "bg-paper-3", bgFaint: "bg-paper-3", text: "text-ink-mute" };
   }
-  return {
-    bg: i === 0 ? "bg-side-a" : "bg-side-b",
-    bgSoft: i === 0 ? "bg-side-a/20" : "bg-side-b/20",
-    bgFaint: i === 0 ? "bg-side-a/15" : "bg-side-b/15",
-    text: i === 0 ? "text-side-a" : "text-side-b",
-  };
+  return i === 0
+    ? { bg: "bg-accent", bgSoft: "bg-accent", bgFaint: "bg-accent/15", text: "text-accent" }
+    : { bg: "bg-ink", bgSoft: "bg-ink", bgFaint: "bg-paper-3", text: "text-ink" };
 }
