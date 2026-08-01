@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Guest, formatNgn } from "@/lib/hall";
+import { OwambeEvent, formatMoney, rateLine } from "@/lib/event";
+import { Guest, sideClasses } from "@/lib/hall";
 
 /*
   The money rail: live total, the Owambe Board top ten, the family war
@@ -15,9 +16,13 @@ import { Guest, formatNgn } from "@/lib/hall";
  * reduced. The animation only paints the intermediate steps on the way
  * there — the total ticks up rather than jumping, and never lies.
  */
-function useTickingTotal(target: number) {
+function useTickingTotal(target: number, format: (n: number) => string) {
   const ref = useRef<HTMLDivElement>(null);
   const shown = useRef(target);
+  const formatRef = useRef(format);
+  useEffect(() => {
+    formatRef.current = format;
+  }, [format]);
 
   useEffect(() => {
     const el = ref.current;
@@ -28,7 +33,7 @@ function useTickingTotal(target: number) {
        rendered the true figure, so there is nothing to correct. */
     const settle = () => {
       shown.current = target;
-      el.textContent = formatNgn(target);
+      el.textContent = formatRef.current(target);
     };
     if (
       window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
@@ -46,7 +51,7 @@ function useTickingTotal(target: number) {
         return;
       }
       shown.current += diff * 0.12;
-      el.textContent = formatNgn(shown.current);
+      el.textContent = formatRef.current(shown.current);
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
@@ -66,16 +71,31 @@ function useTickingTotal(target: number) {
   return ref;
 }
 
-const TIER_NAMES = ["Aso-Ofi", "Gele Kékeré", "Gele Ńlá", "Double Gele"] as const;
+export function MoneyRail({
+  event,
+  guests,
+  totalLocal,
+}: {
+  event: OwambeEvent;
+  guests: Guest[];
+  totalLocal: number;
+}) {
+  const currency = event.currency;
+  const fmt = (n: number) => formatMoney(n, currency);
+  const totalRef = useTickingTotal(totalLocal, fmt);
 
-export function MoneyRail({ guests, totalNgn }: { guests: Guest[]; totalNgn: number }) {
-  const totalRef = useTickingTotal(totalNgn);
-  const board = [...guests].sort((a, b) => b.sprayedNgn - a.sprayedNgn).slice(0, 10);
+  const board = [...guests].sort((a, b) => b.givenLocal - a.givenLocal).slice(0, 10);
   const crownId = board[0]?.id;
+  const tierNames = event.ceremony.tierNames;
+  const sides = event.ceremony.sides;
 
-  const brideTotal = guests.filter((g) => g.side === "bride").reduce((s, g) => s + g.sprayedNgn, 0);
-  const groomTotal = guests.filter((g) => g.side === "groom").reduce((s, g) => s + g.sprayedNgn, 0);
-  const bridePct = Math.round((brideTotal / Math.max(1, brideTotal + groomTotal)) * 100);
+  const totalA = sides
+    ? guests.filter((g) => g.side === sides[0].key).reduce((s, g) => s + g.givenLocal, 0)
+    : 0;
+  const totalB = sides
+    ? guests.filter((g) => g.side === sides[1].key).reduce((s, g) => s + g.givenLocal, 0)
+    : 0;
+  const pctA = Math.round((totalA / Math.max(1, totalA + totalB)) * 100);
 
   return (
     <aside
@@ -90,35 +110,37 @@ export function MoneyRail({ guests, totalNgn }: { guests: Guest[]; totalNgn: num
           className="money mt-1 text-right text-[26px] font-bold leading-none text-gold-bright"
           aria-live="off"
         >
-          {formatNgn(totalNgn)}
+          {fmt(totalLocal)}
         </div>
         <div className="money mt-1 text-right text-[11px] text-cream-faint">
-          rate locked · $1 = ₦1,580
+          rate locked · {rateLine(currency)}
         </div>
       </div>
 
       {/* Family war meter */}
-      <div className="border-b border-rule px-4 py-4">
-        <div className="mb-2 flex items-baseline justify-between">
-          <span className="microlabel">Bride’s side</span>
-          <span className="microlabel">Groom’s side</span>
-        </div>
-        <div
-          className="flex h-[10px] w-full overflow-hidden border border-rule-strong"
-          role="img"
-          aria-label={`Family war meter: bride's side ${bridePct} percent, groom's side ${100 - bridePct} percent`}
-        >
+      {sides && (
+        <div className="border-b border-rule px-4 py-4">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="microlabel">{sides[0].label}</span>
+            <span className="microlabel">{sides[1].label}</span>
+          </div>
           <div
-            className="h-full bg-bride transition-all duration-700"
-            style={{ width: `${bridePct}%` }}
-          />
-          <div className="h-full flex-1 bg-groom transition-all duration-700" />
+            className="flex h-[10px] w-full overflow-hidden border border-rule-strong"
+            role="img"
+            aria-label={`Family war meter: ${sides[0].label} ${pctA} percent, ${sides[1].label} ${100 - pctA} percent`}
+          >
+            <div
+              className="h-full bg-side-a transition-all duration-700"
+              style={{ width: `${pctA}%` }}
+            />
+            <div className="h-full flex-1 bg-side-b transition-all duration-700" />
+          </div>
+          <div className="money mt-1.5 flex justify-between text-[11px] text-cream-mute">
+            <span>{fmt(totalA)}</span>
+            <span>{fmt(totalB)}</span>
+          </div>
         </div>
-        <div className="money mt-1.5 flex justify-between text-[11px] text-cream-mute">
-          <span>{formatNgn(brideTotal)}</span>
-          <span>{formatNgn(groomTotal)}</span>
-        </div>
-      </div>
+      )}
 
       {/* The Owambe Board */}
       <div className="flex-1 px-4 py-4">
@@ -129,6 +151,7 @@ export function MoneyRail({ guests, totalNgn }: { guests: Guest[]; totalNgn: num
         <ol className="mt-2">
           {board.map((g, i) => {
             const isCrown = g.id === crownId;
+            const sc = sideClasses(event, g.side);
             return (
               <li
                 key={g.id}
@@ -143,9 +166,7 @@ export function MoneyRail({ guests, totalNgn }: { guests: Guest[]; totalNgn: num
                   className={`flex h-7 w-7 flex-none items-center justify-center border text-[11px] font-semibold ${
                     isCrown
                       ? "border-gold-deep bg-gold text-ink-well"
-                      : g.side === "bride"
-                        ? "border-rule-strong bg-bride/20 text-cream"
-                        : "border-rule-strong bg-groom/20 text-cream"
+                      : `border-rule-strong ${sc.bgSoft} text-cream`
                   }`}
                   aria-hidden="true"
                 >
@@ -159,11 +180,11 @@ export function MoneyRail({ guests, totalNgn }: { guests: Guest[]; totalNgn: num
                     )}
                   </span>
                   <span className="block truncate text-[10.5px] text-cream-faint">
-                    {TIER_NAMES[g.tier]} · {g.city}
+                    {tierNames[g.tier]} · {g.city}
                   </span>
                 </span>
                 <span className={`money flex-none text-right text-[12px] ${isCrown ? "text-gold-bright" : "text-cream-mute"}`}>
-                  {formatNgn(g.sprayedNgn)}
+                  {fmt(g.givenLocal)}
                 </span>
               </li>
             );

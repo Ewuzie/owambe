@@ -4,38 +4,48 @@ import { useEffect, useRef, useState } from "react";
 import {
   DENOMINATIONS_USD,
   FEE_RATE,
-  celebrantReceivesNgn,
+  OwambeEvent,
+  celebrantReceives,
   feeUsd,
-  formatNgn,
+  formatMoney,
   formatUsd,
-  usdToNgn,
-} from "@/lib/hall";
+  giverPaysUsd,
+  rateLine,
+  toLocal,
+} from "@/lib/event";
 
 /*
   The Spray Deck: opens as a sheet from the bottom, never a new page.
   Denominations, not amounts. Throw, do not submit — hold a bundle to
   load notes, drag up and release to throw. Keyboard users get a Spray
   button with a stepper, fully accessible, same result.
+
+  Money model: the GIVER pays the fee. The note you throw is delivered
+  whole, and the fee is added on top of what you are charged.
 */
 
 export function SprayDeck({
   open,
+  event,
   onClose,
   onThrow,
 }: {
   open: boolean;
+  event: OwambeEvent;
   onClose: () => void;
   onThrow: (amountUsd: number, opts: { message?: string; anonymous: boolean }) => void;
 }) {
   /* Mounted only while open, so each throw starts from a clean bundle. */
   if (!open) return null;
-  return <SprayDeckSheet onClose={onClose} onThrow={onThrow} />;
+  return <SprayDeckSheet event={event} onClose={onClose} onThrow={onThrow} />;
 }
 
 function SprayDeckSheet({
+  event,
   onClose,
   onThrow,
 }: {
+  event: OwambeEvent;
   onClose: () => void;
   onThrow: (amountUsd: number, opts: { message?: string; anonymous: boolean }) => void;
 }) {
@@ -52,6 +62,8 @@ function SprayDeckSheet({
   const [dragDy, setDragDy] = useState(0);
 
   const amount = denom * count;
+  const currency = event.currency;
+  const verb = event.ceremony.givingVerb;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -106,14 +118,14 @@ function SprayDeckSheet({
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Spray deck"
+        aria-label={`${verb} deck`}
         tabIndex={-1}
         className="relative z-10 w-full border-t-2 border-gold-deep bg-ink-raised outline-none"
       >
-        {/* Header: the split view — what the celebrant receives, the rate, the fee */}
+        {/* Header: what is thrown, and what it is worth where it lands */}
         <div className="flex items-start justify-between border-b border-rule px-5 pb-3 pt-4">
           <div>
-            <div className="microlabel">Spray the couple</div>
+            <div className="microlabel">{verb} the couple</div>
             <div className="mt-1 font-display text-[18px] text-cream">
               {count > 1 ? `${count} × ` : ""}
               {formatUsd(denom)} notes
@@ -121,7 +133,9 @@ function SprayDeckSheet({
           </div>
           <div className="text-right">
             <div className="money text-[18px] font-bold text-gold-bright">{formatUsd(amount)}</div>
-            <div className="money text-[11px] text-cream-mute">= {formatNgn(usdToNgn(amount))}</div>
+            <div className="money text-[11px] text-cream-mute">
+              = {formatMoney(toLocal(amount, currency), currency)}
+            </div>
           </div>
         </div>
 
@@ -136,7 +150,7 @@ function SprayDeckSheet({
               key={d}
               role="radio"
               aria-checked={denom === d}
-              aria-label={`${formatUsd(d)} note, ${formatNgn(usdToNgn(d))}`}
+              aria-label={`${formatUsd(d)} note, ${formatMoney(toLocal(d, currency), currency)}`}
               onClick={() => {
                 setDenom(d);
                 setCount(1);
@@ -146,7 +160,9 @@ function SprayDeckSheet({
               }`}
             >
               <span className="money block text-[15px] font-bold">${d}</span>
-              <span className="money block text-[10px] opacity-70">{formatNgn(usdToNgn(d))}</span>
+              <span className="money block text-[10px] opacity-70">
+                {formatMoney(toLocal(d, currency), currency)}
+              </span>
             </button>
           ))}
         </div>
@@ -230,7 +246,7 @@ function SprayDeckSheet({
               onClick={doThrow}
               className="mt-3 cursor-pointer border border-gold-deep bg-gold px-3 py-2.5 text-[13px] font-bold text-ink-well transition-colors duration-150 hover:bg-gold-bright"
             >
-              Spray {formatUsd(amount)}
+              {verb} {formatUsd(amount)}
             </button>
           </div>
         </div>
@@ -238,7 +254,7 @@ function SprayDeckSheet({
         {/* Message + anonymous */}
         <div className="flex items-center gap-4 border-t border-rule px-5 py-3">
           <label htmlFor="spray-message" className="sr-only">
-            Message with your spray
+            Message with your {verb.toLowerCase()}
           </label>
           <input
             id="spray-message"
@@ -251,7 +267,7 @@ function SprayDeckSheet({
           <label className="flex cursor-pointer items-center gap-2 text-[12px] text-cream-mute">
             <input
               type="checkbox"
-              aria-label="Spray anonymously — counted in the total, name kept off the board"
+              aria-label="Give anonymously — counted in the total, name kept off the board"
               checked={anonymous}
               onChange={(e) => setAnonymous(e.target.checked)}
               className="h-3.5 w-3.5 accent-[var(--gold)]"
@@ -260,11 +276,18 @@ function SprayDeckSheet({
           </label>
         </div>
 
-        {/* Plain-language trust line */}
+        {/*
+          The split view. Under giver-pays the couple gets the whole note,
+          and the fee sits visibly on top of what the giver is charged.
+        */}
         <div className="border-t border-rule px-5 py-2.5">
-          <p className="money text-[11px] text-cream-faint">
-            Couple receives {formatNgn(celebrantReceivesNgn(amount))} · rate $1 = ₦1,580 (locked) ·
-            fee {formatUsd(feeUsd(amount))} ({Math.round(FEE_RATE * 100)}%)
+          <p className="money text-[11px] leading-relaxed text-cream-faint">
+            <span className="text-cream-mute">
+              Couple receives {formatMoney(celebrantReceives(amount, currency), currency)} in full
+            </span>
+            {" · "}
+            You pay {formatUsd(giverPaysUsd(amount))} (incl. {formatUsd(feeUsd(amount))} fee,{" "}
+            {Math.round(FEE_RATE * 100)}%) · rate {rateLine(currency)} locked
           </p>
         </div>
       </div>

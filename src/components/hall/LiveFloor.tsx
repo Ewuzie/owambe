@@ -1,6 +1,7 @@
 "use client";
 
-import { Guest, PARTY, PROGRAMME } from "@/lib/hall";
+import { OwambeEvent } from "@/lib/event";
+import { Guest, sideClasses } from "@/lib/hall";
 import { FloatingEmote, Shoutout } from "./useHallEngine";
 
 /*
@@ -10,12 +11,14 @@ import { FloatingEmote, Shoutout } from "./useHallEngine";
 */
 
 export function LiveFloor({
+  event,
   guests,
   emotes,
   shoutout,
   programmeIndex,
   rainActive,
 }: {
+  event: OwambeEvent;
   guests: Guest[];
   emotes: FloatingEmote[];
   shoutout: Shoutout | null;
@@ -28,6 +31,7 @@ export function LiveFloor({
     tables.set(g.table, [...(tables.get(g.table) ?? []), g]);
   }
   const tableNumbers = [...tables.keys()].sort((a, b) => a - b);
+  const sides = event.ceremony.sides;
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col">
@@ -36,7 +40,7 @@ export function LiveFloor({
         className="flex items-center gap-0 overflow-x-auto border-b border-rule bg-ink"
         aria-label="Programme of the day"
       >
-        {PROGRAMME.map((item, i) => {
+        {event.ceremony.programme.map((item, i) => {
           const state = i < programmeIndex ? "done" : i === programmeIndex ? "now" : "next";
           return (
             <div
@@ -73,13 +77,13 @@ export function LiveFloor({
         <div className="absolute inset-0" aria-hidden="true">
           <AdireBackdrop />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="microlabel mb-3 !text-cream-faint">Live from {PARTY.venue}</div>
+            <div className="microlabel mb-3 !text-cream-faint">Live from {event.venue}</div>
             <h1 className="px-4 text-center font-display text-[clamp(26px,4.5vw,44px)] leading-tight text-cream">
-              {PARTY.title}
+              {event.title}
             </h1>
             <div className="mt-2 flex items-center gap-3">
-              <span className="microlabel !text-cream-mute">{PARTY.type}</span>
-              <span className="microlabel !text-aso">{PARTY.hashtag}</span>
+              <span className="microlabel !text-cream-mute">{event.ceremony.label}</span>
+              <span className="microlabel !text-aso">{event.hashtag}</span>
             </div>
             <div className="mt-5 border-t border-rule pt-3">
               <span className="microlabel !text-cream-faint">
@@ -100,7 +104,7 @@ export function LiveFloor({
         <div className="absolute right-3 top-3 flex items-center gap-1.5 border border-rule-strong bg-ink-well/80 px-2 py-1">
           <span className="marker bg-aso" aria-hidden="true" />
           <span className="marker bg-gold" aria-hidden="true" />
-          <span className="microlabel !text-cream">Aso-ebi · {PARTY.asoEbiName}</span>
+          <span className="microlabel !text-cream">Aso-ebi · {event.asoEbiName}</span>
         </div>
 
         {/* Floating emotes */}
@@ -164,26 +168,29 @@ export function LiveFloor({
                 {isYours ? " · yours" : ""}
               </span>
               <div className="flex gap-1">
-                {seated.map((g) => (
-                  <span
-                    key={g.id}
-                    title={`${g.name} · ${g.side === "bride" ? "Bride's side" : "Groom's side"} · ${g.city}`}
-                    className={`flex h-6 w-6 cursor-pointer items-center justify-center border text-[9px] font-semibold transition-colors duration-150 ${
-                      g.isYou
-                        ? "border-aso bg-aso/25 text-cream"
-                        : g.side === "bride"
-                          ? "border-rule-strong bg-bride/15 text-cream-mute hover:text-cream"
-                          : "border-rule-strong bg-groom/15 text-cream-mute hover:text-cream"
-                    }`}
-                  >
-                    {g.name
-                      .split(" ")
-                      .map((p) => p[0])
-                      .slice(0, 2)
-                      .join("")
-                      .toUpperCase()}
-                  </span>
-                ))}
+                {seated.map((g) => {
+                  const sc = sideClasses(event, g.side);
+                  const sideLabel =
+                    sides?.find((s) => s.key === g.side)?.label ?? g.side;
+                  return (
+                    <span
+                      key={g.id}
+                      title={`${g.name} · ${sideLabel} · ${g.city}`}
+                      className={`flex h-6 w-6 cursor-pointer items-center justify-center border text-[9px] font-semibold transition-colors duration-150 ${
+                        g.isYou
+                          ? "border-aso bg-aso/25 text-cream"
+                          : `border-rule-strong ${sc.bgFaint} text-cream-mute hover:text-cream`
+                      }`}
+                    >
+                      {g.name
+                        .split(" ")
+                        .map((p) => p[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           );

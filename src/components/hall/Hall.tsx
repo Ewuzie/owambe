@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EMOTES, PARTY, YOU_ID } from "@/lib/hall";
+import { DEMO_EVENT, OwambeEvent } from "@/lib/event";
+import { EMOTES, YOU_ID } from "@/lib/hall";
 import { ChatRail } from "./ChatRail";
 import { LiveFloor } from "./LiveFloor";
 import { MoneyRail } from "./MoneyRail";
@@ -12,9 +13,12 @@ import { SprayVisual, useHallEngine } from "./useHallEngine";
 /*
   The Party Hall — the product. Live video centre of gravity, spray
   canvas layered over everything, chat rail and money rail beside it.
+
+  The event arrives as data. Today it is DEMO_EVENT; in U1.0 it will be
+  loaded by id from the events service, and nothing in here changes.
 */
 
-export function Hall() {
+export function Hall({ event = DEMO_EVENT }: { event?: OwambeEvent }) {
   const canvasRef = useRef<SprayCanvasHandle>(null);
   const [deckOpen, setDeckOpen] = useState(false);
   const [mobileRail, setMobileRail] = useState<"board" | "chat">("board");
@@ -23,7 +27,7 @@ export function Hall() {
     canvasRef.current?.burst(v.noteCount, v.origin);
   }, []);
 
-  const { state, spray, sendChat, sendEmote } = useHallEngine(onSprayVisual);
+  const { state, spray, sendChat, sendEmote } = useHallEngine(event, onSprayVisual);
 
   useEffect(() => {
     canvasRef.current?.setRain(state.rainActive);
@@ -35,10 +39,10 @@ export function Hall() {
       <header className="flex items-center justify-between border-b border-rule-strong bg-ink px-4 py-2.5">
         <div className="flex items-baseline gap-3">
           <span className="font-display text-[17px] tracking-wide text-cream">Owambe</span>
-          <span className="microlabel hidden sm:inline">The hall of {PARTY.title}</span>
+          <span className="microlabel hidden sm:inline">The hall of {event.title}</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="microlabel hidden md:inline">{PARTY.hashtag}</span>
+          <span className="microlabel hidden md:inline">{event.hashtag}</span>
           <button className="microlabel cursor-pointer border border-rule-strong px-3 py-1.5 !text-cream transition-colors duration-200 hover:border-cream-mute">
             Invite
           </button>
@@ -49,12 +53,13 @@ export function Hall() {
           the board and the chat are core to the product, never dropped. */}
       <div className="relative grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] lg:grid-cols-[260px_1fr_290px] lg:grid-rows-1">
         <div className="hidden min-h-0 border-r border-rule lg:block">
-          <MoneyRail guests={state.guests} totalNgn={state.totalNgn} />
+          <MoneyRail event={event} guests={state.guests} totalLocal={state.totalLocal} />
         </div>
 
         {/* Centre: floor + spray canvas + deck */}
         <div className="relative min-h-0 min-w-0">
           <LiveFloor
+            event={event}
             guests={state.guests}
             emotes={state.emotes}
             shoutout={state.shoutout}
@@ -101,19 +106,20 @@ export function Hall() {
               onClick={() => setDeckOpen(true)}
               className="flex-none cursor-pointer border-l-2 border-gold-deep bg-gold px-6 py-3.5 text-[14px] font-bold tracking-wide text-ink-well transition-colors duration-150 hover:bg-gold-bright"
             >
-              SPRAY
+              {event.ceremony.givingVerb.toUpperCase()}
             </button>
           </div>
 
           <SprayDeck
             open={deckOpen}
+            event={event}
             onClose={() => setDeckOpen(false)}
             onThrow={(amountUsd, opts) => spray(YOU_ID, amountUsd, opts)}
           />
         </div>
 
         <div className="hidden min-h-0 border-l border-rule lg:block">
-          <ChatRail chat={state.chat} guests={state.guests} onSend={sendChat} />
+          <ChatRail event={event} chat={state.chat} guests={state.guests} onSend={sendChat} />
         </div>
 
         {/* Phone: one rail at a time, chosen by the guest */}
@@ -137,9 +143,9 @@ export function Hall() {
           </div>
           <div className="h-[42dvh] min-h-0">
             {mobileRail === "board" ? (
-              <MoneyRail guests={state.guests} totalNgn={state.totalNgn} />
+              <MoneyRail event={event} guests={state.guests} totalLocal={state.totalLocal} />
             ) : (
-              <ChatRail chat={state.chat} guests={state.guests} onSend={sendChat} />
+              <ChatRail event={event} chat={state.chat} guests={state.guests} onSend={sendChat} />
             )}
           </div>
         </div>

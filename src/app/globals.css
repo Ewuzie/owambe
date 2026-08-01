@@ -39,8 +39,10 @@
   /* -- colour: per-party aso-ebi (host-set; demo party: coral) -- */
   --aso-ebi: #d96c5f;
   --aso-ebi-deep: #a84a40;
-  --aso-ebi-bride: #d96c5f; /* bride's side */
-  --aso-ebi-groom: #4f8a8b; /* groom's side */
+  /* The two family sides. Named by position, not by role, because not every
+     ceremony has a bride and a groom — the ceremony config supplies the labels. */
+  --side-a: #d96c5f;
+  --side-b: #4f8a8b;
 
   /* -- colour: hairlines -- */
   --rule: rgba(239, 231, 214, 0.14); /* hairline on ink */
@@ -85,8 +87,8 @@
   --color-gold-deep: var(--gold-deep);
   --color-aso: var(--aso-ebi);
   --color-aso-deep: var(--aso-ebi-deep);
-  --color-bride: var(--aso-ebi-bride);
-  --color-groom: var(--aso-ebi-groom);
+  --color-side-a: var(--side-a);
+  --color-side-b: var(--side-b);
   --color-rule: var(--rule);
   --color-rule-strong: var(--rule-strong);
   --color-rule-paper: var(--rule-paper);

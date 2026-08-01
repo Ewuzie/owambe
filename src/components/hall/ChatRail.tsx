@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { ChatMessage, Guest } from "@/lib/hall";
+import { OwambeEvent } from "@/lib/event";
+import { ChatMessage, Guest, sideClasses } from "@/lib/hall";
 
 /*
   Chat rail: table chat and hall chat as two tabs. Spray events are
@@ -9,10 +10,12 @@ import { ChatMessage, Guest } from "@/lib/hall";
 */
 
 export function ChatRail({
+  event,
   chat,
   guests,
   onSend,
 }: {
+  event: OwambeEvent;
   chat: ChatMessage[];
   guests: Guest[];
   onSend: (text: string) => void;
@@ -69,7 +72,7 @@ export function ChatRail({
         aria-live="polite"
       >
         {visible.map((m) => (
-          <ChatLine key={m.id} msg={m} guests={guests} />
+          <ChatLine key={m.id} msg={m} guests={guests} event={event} />
         ))}
       </div>
 
@@ -97,7 +100,15 @@ export function ChatRail({
   );
 }
 
-function ChatLine({ msg, guests }: { msg: ChatMessage; guests: Guest[] }) {
+function ChatLine({
+  msg,
+  guests,
+  event,
+}: {
+  msg: ChatMessage;
+  guests: Guest[];
+  event: OwambeEvent;
+}) {
   if (msg.kind === "ledger") {
     /* Spray events read as ledger lines: hairline, mono amount inline */
     return (
@@ -114,13 +125,14 @@ function ChatLine({ msg, guests }: { msg: ChatMessage; guests: Guest[] }) {
     );
   }
   const guest = guests.find((g) => g.id === msg.guestId);
+  const nameColour = guest?.isYou
+    ? "text-cream"
+    : guest
+      ? sideClasses(event, guest.side).text
+      : "text-cream-mute";
   return (
     <div className="py-1 text-[13px] leading-snug">
-      <span
-        className={`mr-1.5 font-semibold ${
-          guest?.isYou ? "text-cream" : guest?.side === "bride" ? "text-bride" : "text-groom"
-        }`}
-      >
+      <span className={`mr-1.5 font-semibold ${nameColour}`}>
         {guest?.name ?? "Guest"}
       </span>
       <span className="text-cream-mute">{msg.text}</span>
