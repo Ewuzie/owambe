@@ -39,9 +39,14 @@ export function CelebrationsHome() {
       {/* Masthead */}
       <header className="border-b-2 border-ink">
         <div className="mx-auto max-w-6xl px-5 pb-14 pt-10 sm:px-8">
-          <div className="flex items-baseline justify-between">
+          <div className="flex items-center justify-between gap-4">
             <span className="display text-[19px]">Owambe</span>
-            <span className="microlabel">Africa</span>
+            <Link
+              href="/create"
+              className="microlabel flex-none cursor-pointer border-2 border-ink px-4 py-2.5 transition-colors duration-150 hover:bg-ink hover:!text-paper"
+            >
+              Host a celebration
+            </Link>
           </div>
 
           <h1 className="stagger display mt-10 text-[clamp(42px,11vw,132px)]">
@@ -55,6 +60,18 @@ export function CelebrationsHome() {
             in front of everybody. Owambe carries that across the distance, and it
             lands in a local account the same night.
           </p>
+
+          <div className="rise mt-9 flex flex-wrap items-center gap-4">
+            <Link
+              href="/create"
+              className="display cursor-pointer bg-accent px-7 py-4 text-[16px] text-on-accent transition-colors duration-150 hover:bg-ink"
+            >
+              Host a celebration
+            </Link>
+            <span className="text-[12.5px] text-ink-faint">
+              Free to set up. You are paid out the same night.
+            </span>
+          </div>
         </div>
       </header>
 
